@@ -1,12 +1,10 @@
+// src/db.js (VERSÃO CORRIGIDA)
 const { Pool } = require('pg');
-require('dotenv').config(); // Para carregar variáveis de ambiente
+require('dotenv').config(); // Carrega o .env
 
 const pool = new Pool({
-  user: process.env.DB_USER || 'postgres',
-  host: process.env.DB_HOST || 'localhost',
-  database: process.env.DB_NAME || 'projeto',
-  password: process.env.DB_PASSWORD || 'cssn',
-  port: process.env.DB_PORT || 5432,
+  // Isso vai ler a string "postgresql://postgres:cssn@localhost:5432/projeto"
+  connectionString: process.env.DATABASE_URL, 
 });
 
 module.exports = pool;

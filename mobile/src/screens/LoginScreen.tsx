@@ -1,10 +1,9 @@
 
-// src/screens/LoginScreen.tsx
 import React, { useState } from 'react';
 // Adicione 'Alert' aqui
 import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native'; 
 import { useAuth } from '@/contexts/AuthContext';
-// ... resto do código
+
 
 // O React Navigation nos dá a prop 'navigation'
 export function LoginScreen({ navigation }: any) {

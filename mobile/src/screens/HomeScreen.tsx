@@ -1,4 +1,3 @@
-// src/screens/HomeScreen.tsx
 import React from 'react';
 import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
