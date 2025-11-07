@@ -1,86 +1,114 @@
+// src/screens/LoginScreen.tsx
 
 import React, { useState } from 'react';
-// Adicione 'Alert' aqui
-import { View, Text, TextInput, Button, StyleSheet, ActivityIndicator, Alert } from 'react-native'; 
-import { useAuth } from '@/contexts/AuthContext';
+import styles from "../components/style"; // Você mudou o caminho, verifique se está correto
+import {
+  Alert,
+  Keyboard,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+  ActivityIndicator,
+  // <<< CORREÇÃO: Faltava importar estes componentes
+  Text,
+  TextInput,
+  KeyboardAvoidingView,
+} from "react-native";
+import { Button, SocialIcon } from "react-native-elements";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { useAuth } from '@/contexts/AuthContext'; 
 
+type LoginScreenProps = {
+  navigation: StackNavigationProp<any>;
+};
 
-// O React Navigation nos dá a prop 'navigation'
-export function LoginScreen({ navigation }: any) {
-  const [name, setName] = useState('');
+export default function LoginScreen({ navigation }: LoginScreenProps) {
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth(); // Pegamos a função login do nosso contexto
-
-  const handleLogin = async () => {
-    if (!name || !password) {
-      Alert.alert('Erro', 'Preencha nome e senha.');
+  const onLoginPress = async () => {
+    if (!email || !password) {
+      Alert.alert('Erro', 'Por favor, preencha email e senha.');
       return;
     }
-    setLoading(true);
-    const success = await login(name, password); // Chama o login
-    if (!success) {
-      setLoading(false); // Se falhar, para o loading
+    setIsLoading(true);
+    const success = await login(email, password);
+    setIsLoading(false);
+
+    if (success) {
+      // O AppNavigator cuida da navegação
     }
-    // Se der sucesso, o AppNavigator vai cuidar de trocar a tela
+  };
+
+  const onGoogleLoginPress = async () => {
+    Alert.alert('Google Login', 'Funcionalidade a ser implementada.');
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Nome de usuário"
-        value={name}
-        onChangeText={setName}
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Senha"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      {loading ? (
-        <ActivityIndicator size="large" />
-      ) : (
-        <>
-          <Button title="Entrar" onPress={handleLogin} />
-          <View style={styles.separator} />
-          <Button 
-            title="Não tem conta? Cadastre-se" 
-            onPress={() => navigation.navigate('Register')} // Navega para a tela de Registro
-          />
-        </>
-      )}
-    </View>
+    <KeyboardAvoidingView style={styles.containerView} behavior="padding">
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.loginScreenContainer}>
+          <View style={styles.loginFormView}>
+            <Text style={styles.logoText}>SeuApp</Text>
+            <TextInput
+              placeholder="Email"
+              placeholderTextColor="#c4c3cb"
+              style={styles.loginFormTextInput}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={setEmail}
+            />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#c4c3cb"
+              style={styles.loginFormTextInput}
+              secureTextEntry={true}
+              value={password}
+              onChangeText={setPassword}
+            />
+
+            {isLoading ? (
+              <ActivityIndicator size="large" color="#3897f1" style={{ marginTop: 10 }} />
+            ) : (
+              <Button
+                buttonStyle={styles.loginButton}
+                onPress={onLoginPress}
+                title="Login"
+              />
+            )}
+
+            <SocialIcon
+              title="Login com Google"
+              button
+              type="google"
+              style={{ marginTop: 10 }}
+              onPress={onGoogleLoginPress}
+            />
+
+            <TouchableOpacity
+              style={styles.navButton}
+              onPress={() => navigation.navigate('ForgotPassword')}
+            >
+              <Text style={styles.navButtonText}>
+                Esqueci minha senha
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.navButton}
+              onPress={() => navigation.navigate('Register')}
+            >
+              <Text style={styles.navButtonText}>
+                Não tem conta? Crie uma
+              </Text>
+            </TouchableOpacity>
+
+          </View>
+        </View>
+      </TouchableWithoutFeedback>
+    </KeyboardAvoidingView>
   );
 }
-
-// Estilos básicos
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
-    borderRadius: 5,
-    marginBottom: 12,
-    paddingHorizontal: 8,
-  },
-  separator: {
-    height: 10,
-  }
-});

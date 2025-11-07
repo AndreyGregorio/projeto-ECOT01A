@@ -6,20 +6,21 @@ import { ActivityIndicator, View } from 'react-native';
 // 1. Importe o nosso hook de autenticação
 import { useAuth } from '@/contexts/AuthContext';
 
-// 2. Importe TODAS as novas telas
-import { LoginScreen } from '@/screens/LoginScreen';
-import { RegisterScreen } from '@/screens/RegisterScreen';
-import { HomeScreen } from '@/screens/HomeScreen';
+// 2. Importe TODAS as telas
+import LoginScreen from '@/screens/LoginScreen';
+import RegisterScreen from '@/screens/RegisterScreen';
+import HomeScreen from '@/screens/HomeScreen';
+import ForgotPasswordScreen from '@/screens/ForgotPasswordScreen';
 
 const Stack = createNativeStackNavigator();
 
-// 3. Stacks (conjuntos de telas) separadas
 function AuthStack() {
   // Telas para quem NÃO está logado
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
@@ -59,6 +60,6 @@ export default function AppNavigator() {
         Se 'token' for nulo, mostre o AuthStack (deslogado).
       */}
       {token ? <AppStack /> : <AuthStack />}
-    </NavigationContainer>
+    </NavigationContainer> // <<< CORREÇÃO AQUI (era </NormalContainer>)
   );
 }

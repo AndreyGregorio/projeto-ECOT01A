@@ -1,33 +1,36 @@
-import React from 'react';
-import { View, Text, Button, StyleSheet, ScrollView } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
+import React from "react";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 
-export function HomeScreen() {
-  const { logout } = useAuth(); // Pegamos o logout
-
+export default function HomeScreen() {
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.title}>Página Inicial</Text>
-      <Text style={styles.subtitle}>Bem-vindo! (Posts Fixos)</Text>
-
-      {/* --- Posts Fixos --- */}
-      <View style={styles.post}>
-        <Text style={styles.postTitle}>Post 1: O que é React Native?</Text>
-        <Text>React Native permite construir apps móveis usando React e JavaScript. Você escreve o código uma vez e ele roda em Android e iOS.</Text>
+      <Text style={styles.title}>Bem-vindo!</Text>
+      
+      {/* Post Fixo 1 */}
+      <View style={styles.postContainer}>
+        <Text style={styles.postTitle}>Post Fixo 1</Text>
+        <Text style={styles.postContent}>
+          Este é o conteúdo do primeiro post fixo. Pode ser uma notícia, 
+          um aviso ou qualquer informação estática que você queira exibir.
+        </Text>
       </View>
 
-      <View style={styles.post}>
-        <Text style={styles.postTitle}>Post 2: Backend com Node.js</Text>
-        <Text>Nosso backend usa Node.js, Express e PostgreSQL para criar uma API RESTful segura com autenticação JWT.</Text>
+      {/* Post Fixo 2 */}
+      <View style={styles.postContainer}>
+        <Text style={styles.postTitle}>Post Fixo 2</Text>
+        <Text style={styles.postContent}>
+          Aqui está o segundo post. Você pode adicionar quantos posts 
+          fixos quiser, apenas copiando e colando este bloco.
+        </Text>
       </View>
-
-      <View style={styles.post}>
-        <Text style={styles.postTitle}>Post 3: Próximos Passos</Text>
-        <Text>O próximo passo seria carregar esses posts dinamicamente do backend, criando uma nova rota e uma nova tabela no banco!</Text>
+      
+      {/* Post Fixo 3 */}
+      <View style={styles.postContainer}>
+        <Text style={styles.postTitle}>Post Fixo 3</Text>
+        <Text style={styles.postContent}>
+          Mais um post para preencher a tela.
+        </Text>
       </View>
-      {/* --- Fim dos Posts --- */}
-
-      <Button title="Sair (Logout)" onPress={logout} color="red" />
     </ScrollView>
   );
 }
@@ -35,27 +38,29 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 15,
+    padding: 20,
+    backgroundColor: "#fff",
   },
   title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#555',
+    fontSize: 28,
+    fontWeight: "bold",
     marginBottom: 20,
+    marginTop: 40, // Espaço do topo
   },
-  post: {
-    backgroundColor: '#f0f0f0',
+  postContainer: {
+    marginBottom: 20,
     padding: 15,
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
-    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#eee",
   },
   postTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: "bold",
     marginBottom: 5,
+  },
+  postContent: {
+    fontSize: 14,
   },
 });
