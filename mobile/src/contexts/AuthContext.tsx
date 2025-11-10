@@ -3,23 +3,23 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { API_URL } from '@/services/api';
 import { Alert } from 'react-native';
 
-// 1. ADICIONE 'forgotPassword' À INTERFACE
+// 1. --- MUDANÇA AQUI ---
+// A interface da função 'login' foi atualizada
 interface AuthContextData {
   token: string | null;
   isLoading: boolean; 
-  login: (email: string, password: string) => Promise<boolean>; 
+  login: (email: string, password: string) => Promise<boolean>; // <- De 'name, pass' para 'email, password'
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  forgotPassword: (email: string) => Promise<boolean>; // <<< ADICIONADO AQUI
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // <<< CORRIGIDO (era appIsLoading no seu código colado)
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Efeito para carregar o token
+  // Efeito para carregar o token (Está perfeito, sem mudanças)
   useEffect(() => {
     async function loadToken() {
       try {
@@ -36,13 +36,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadToken();
   }, []);
 
-  // --- FUNÇÃO DE LOGIN ---
+  // --- 6. FUNÇÃO DE LOGIN (MODIFICADA) ---
+  // --- 2. MUDANÇA AQUI ---
+  // A função agora recebe 'email' e 'password'
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        // --- 3. MUDANÇA AQUI ---
+        // Enviamos 'email' e 'password' no body
         body: JSON.stringify({ email, password }),
       });
 
@@ -66,7 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // --- FUNÇÃO DE REGISTRO ---
+  // --- 7. FUNÇÃO DE REGISTRO (Está correta, sem mudanças) ---
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
@@ -99,56 +103,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // --- FUNÇÃO DE LOGOUT ---
+  // --- 8. FUNÇÃO DE LOGOUT (Está correta, sem mudanças) ---
   const logout = async () => {
     setIsLoading(true);
     setToken(null); 
     await AsyncStorage.removeItem('token'); 
     setIsLoading(false);
   };
-  
-  // 2. MOVA A FUNÇÃO 'forgotPassword' PARA DENTRO DO 'AuthProvider'
-  const forgotPassword = async (email: string) => {
-    try {
-      // Você precisará criar esta rota no seu backend
-      const response = await fetch(`${API_URL}/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        Alert.alert('Erro', data.error || 'Não foi possível processar a solicitação.');
-        return false;
-      }
-      
-      return true;
-
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Erro de Conexão', `Não foi possível conectar ao servidor: ${e.message}`);
-      return false;
-    }
-  };
-
-  // 3. ADICIONE 'forgotPassword' AO 'value' DO PROVIDER (E USE APENAS UM RETURN)
   return (
-    <AuthContext.Provider 
-      value={{ 
-        token, 
-        isLoading, 
-        login, 
-        register, 
-        logout, 
-        forgotPassword // <<< ADICIONADO AQUI
-      }}
-    >
+    <AuthContext.Provider value={{ token, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );
-}; // <<< ESTE É O FIM CORRETO DO AuthProvider
+};
 
 // --- 10. Hook (Está correto, sem mudanças) ---
 export function useAuth() {

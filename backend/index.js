@@ -36,9 +36,11 @@ app.post('/register', async (req, res) => {
 
         // 4. MUDANÇA: Salvar no banco de dados (com email)
         const newUser = await pool.query(
-            "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id, name, email",
+            "INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email",
             [name, email, hashedPassword]
         );
+
+        console.log(newUser.rows[0]);
 
         res.status(201).json(newUser.rows[0]); // Retorna o usuário criado
 
@@ -54,32 +56,32 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// --- Rota 2: Login (Sem mudança) ---
-// (Esta rota ainda loga com 'name'. Se quiser logar com 'email', me avise!)
 app.post('/login', async (req, res) => {
-    const { name, password } = req.body;
+    // 1. MUDANÇA: Esperar 'email' e 'password' do body
+    const { email, password } = req.body;
 
     try {
-        // 1. Buscar o usuário pelo nome
-        const userQuery = await pool.query("SELECT * FROM users WHERE name = $1", [name]);
+        // 2. MUDANÇA: Buscar o usuário pelo 'email'
+        const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
         
-        // 2. Checar se o usuário existe
+        // 3. Checar se o usuário existe
         if (userQuery.rows.length === 0) {
-            return res.status(401).json({ error: 'Credenciais inválidas.' }); // 401 = Não autorizado
+            return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
 
         const user = userQuery.rows[0];
-
-        // 3. Comparar a senha enviada com a senha criptografada no banco
-        const isMatch = await bcrypt.compare(password, user.password);
+        // O comentário fofo ainda está aqui <3
+        
+        // 4. Comparar a senha (sem mudança)
+        const isMatch = await bcrypt.compare(password, user.password_hash); // Use user.password_hash (provavelmente é o nome da sua coluna)
 
         if (!isMatch) {
             return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
 
-        // 4. Se deu tudo certo, criar um token JWT
+        // 5. Criar o token (sem mudança)
         const token = jwt.sign(
-            { id: user.id, name: user.name, email: user.email }, // Adicionei email ao token
+            { id: user.id, name: user.name, email: user.email }, 
             "seuSegredoJWT", 
             { expiresIn: '1h' }
         );

@@ -2,12 +2,42 @@ CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL,
-  -- Colunas para o "Esqueci minha senha"
-  reset_token VARCHAR(255),
-  reset_token_expires TIMESTAMPTZ -- 'TIMESTAMPTZ' armazena o fuso horário
+  password_hash VARCHAR(255) NOT NULL
 );
 
-ALTER TABLE users
-ADD COLUMN bio TEXT,
-ADD COLUMN avatar_url VARCHAR(255);
+//MVP 2
+
+-- 1. PERFIL
+create table profiles (
+  id          uuid references auth.users(id) primary key,
+  username    text unique not null,
+  bio         text,
+  avatar_url  text
+);
+
+-- 2. POST
+create table posts (
+  id          uuid primary key default gen_random_uuid(),
+  user_id     uuid references profiles(id) not null,
+  content     text not null,
+  image_url   text,
+  created_at  timestamptz default now()
+);
+
+-- 3. CURTIDA
+create table likes (
+  id          uuid primary key default gen_random_uuid(),
+  post_id     uuid references posts(id) not null,
+  user_id     uuid references profiles(id) not null,
+  created_at  timestamptz default now(),
+  unique (post_id, user_id)          -- evita duplicitáneas
+);
+
+-- 4. COMENTÁRIO
+create table comments (
+  id          uuid primary key default gen_random_uuid(),
+  post_id     uuid references posts(id) not null,
+  user_id     uuid references profiles(id) not null,
+  content     text not null,
+  created_at  timestamptz default now()
+);

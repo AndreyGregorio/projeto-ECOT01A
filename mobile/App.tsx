@@ -1,36 +1,25 @@
+// App.tsx
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-// Importe suas telas
-import LoginScreen from './src/screens/LoginScreen';
-import RegisterScreen from './src/screens/RegisterScreen';
-import HomeScreen from './src/screens/HomeScreen';
+// 1. Importe nosso Provedor de Autenticação
+import { AuthProvider } from './src/contexts/AuthContext';
 
-const Stack = createStackNavigator();
+// 2. Importe o Navegador
+import AppNavigator from './src/navigation/AppNavigator';
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator 
-        initialRouteName="Login" // Começa na tela de Login
-      >
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen} 
-          options={{ headerShown: false }} // Esconde o cabeçalho
-        />
-        <Stack.Screen 
-          name="Register" 
-          component={RegisterScreen} 
-          options={{ headerShown: false }} // Esconde o cabeçalho
-        />
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen} 
-          options={{ title: 'Página Inicial' }} // Mostra um cabeçalho
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      {/* 3. O AuthProvider deve ser o "pai" de tudo,
+           para que o AppNavigator (e todas as telas)
+           possam saber se o usuário está logado.
+      */}
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+      <StatusBar style="auto" />
+    </SafeAreaProvider>
   );
 }

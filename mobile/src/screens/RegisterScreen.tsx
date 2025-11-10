@@ -1,83 +1,242 @@
-import React from "react";
-import styles from "../components/style";
+import React, { useState } from 'react';
 import {
-  Alert,
-  Keyboard,
-  KeyboardAvoidingView,
+  View,
   Text,
   TextInput,
   TouchableOpacity,
-  TouchableWithoutFeedback,
-  View,
-  Image, 
-} from "react-native";
-import { Button } from "react-native-elements";
-// <<< CORREÇÃO: Importar o tipo de navegação
-import { StackNavigationProp } from "@react-navigation/stack";
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+  ActivityIndicator, // Usado DENTRO do botão, não muda o layout
+} from 'react-native';
+import { StatusBar } from 'expo-status-bar';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useAuth } from '@/contexts/AuthContext'; // Lógica de autenticação
 
-// <<< CORREÇÃO: Definir o tipo das props
-type RegisterScreenProps = {
-  navigation: StackNavigationProp<any>;
-};
+// Importações para a navegação funcionar
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { AuthStackParamList } from '@/navigation/AppNavigator'; // Tipos do seu AppNavigator
 
-// <<< CORREÇÃO: Aplicar o tipo às props
-export default function RegisterScreen({ navigation }: RegisterScreenProps) {
+// Tipo da navegação para esta tela
+type RegisterScreenNavigationProp = NativeStackNavigationProp<
+  AuthStackParamList,
+  'Register'
+>;
 
-  const onRegisterPress = () => {
-    Alert.alert("Sucesso!", "Conta criada.");
-    navigation.navigate("Home"); 
+const RegisterScreen: React.FC = () => {
+  const [nome, setNome] = useState('');
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false); // Controla o loading
+
+  const { register } = useAuth();
+  const navigation = useNavigation<RegisterScreenNavigationProp>();
+
+  // Função chamada pelo botão "Continuar"
+  const handleRegister = async () => {
+    if (!nome.trim() || !email.trim() || !senha.trim()) {
+      Alert.alert('Erro', 'Por favor, preencha todos os campos.');
+      return;
+    }
+    
+    setIsSubmitting(true); // Ativa o loading
+    
+    try {
+      const success = await register(nome, email, senha);
+      if (success) {
+        // Navega para o Login (como definido no AppNavigator)
+        navigation.navigate('Login'); 
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert('Erro', 'Ocorreu um erro inesperado.');
+    } finally {
+      setIsSubmitting(false); // Desativa o loading
+    }
+  };
+
+  // Função chamada pelo link "Login"
+  const handleLogin = () => {
+    // Navega para a tela de Login (como definido no AppNavigator)
+    navigation.navigate('Login');
   };
 
   return (
-    <KeyboardAvoidingView style={styles.containerView} behavior="padding">
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.loginScreenContainer}>
-          <View style={styles.loginFormView}>
-            
-            <View style={styles.logoContainer}>
-              <Image 
-                style={styles.logoImage} 
-                source={{ uri: 'https://reactnative.dev/img/tiny_logo.png' }} 
-              />
-              <Text style={styles.appName}>Nome do Seu App</Text>
-            </View>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          keyboardShouldPersistTaps="handled"
+        >
+          <Text style={styles.appTitle}>UNIFEED</Text>
 
+          <Text style={styles.title}>Criar uma conta</Text>
+          <Text style={styles.subtitle}>
+            Insira seu e-mail universitário para se cadastrar neste aplicativo
+          </Text>
+
+          {}
+          <View style={styles.formContainer}>
             <TextInput
-              placeholder="Nome Completo"
-              placeholderTextColor="#c4c3cb" // <<< CORREÇÃO
-              style={styles.loginFormTextInput}
+              style={styles.input}
+              placeholder="Nome"
+              placeholderTextColor="#888"
+              value={nome}
+              onChangeText={setNome}
+              autoCapitalize="words"
+              returnKeyType="next"
+              editable={!isSubmitting} 
             />
             <TextInput
-              placeholder="Email"
-              placeholderTextColor="#c4c3cb" // <<< CORREÇÃO
-              style={styles.loginFormTextInput}
+              style={styles.input}
+              placeholder="email@dominio.com"
+              placeholderTextColor="#888"
+              value={email}
+              onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              returnKeyType="next"
+              editable={!isSubmitting} 
             />
             <TextInput
+              style={styles.input}
               placeholder="Senha"
-              placeholderTextColor="#c4c3cb" // <<< CORREÇÃO
-              style={styles.loginFormTextInput}
-              secureTextEntry={true}
+              placeholderTextColor="#888"
+              value={senha}
+              onChangeText={setSenha}
+              secureTextEntry
+              returnKeyType="done"
+              editable={!isSubmitting} 
             />
-            <Button
-              buttonStyle={styles.loginButton}
-              onPress={() => onRegisterPress()}
-              title="Registrar"
-            />
-
-            <TouchableOpacity 
-              style={styles.navButton}
-              onPress={() => navigation.navigate('Login')}
-            >
-              <Text style={styles.navButtonText}>
-                Já tem conta? Faça login
-              </Text>
-            </TouchableOpacity>
-
           </View>
-        </View>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+
+          {/* Botão Principal */}
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={handleRegister} 
+            disabled={isSubmitting} 
+          >
+            {/* Isto é a única "mudança":
+              Se estiver carregando (isSubmitting = true), mostra o círculo.
+              Se não (isSubmitting = false), mostra o texto "Continuar".
+              O visual do botão não muda.
+            */}
+            {isSubmitting ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <Text style={styles.buttonText}>Continuar</Text>
+            )}
+          </TouchableOpacity>
+
+          {/* Link de Login */}
+          <TouchableOpacity onPress={handleLogin} disabled={isSubmitting}>
+            <Text style={styles.loginLink}>Login</Text>
+          </TouchableOpacity>
+
+          {/* Texto Legal */}
+          <Text style={styles.legalText}>
+            Ao clicar em continuar, você concorda com os nossos
+            <Text style={styles.legalBold}> Termos de Serviço </Text>
+            e com a
+            <Text style={styles.legalBold}> Política de Privacidade</Text>
+          </Text>
+
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
-}
+};
+
+
+const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  container: {
+    flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 35,
+    paddingVertical: 20,
+  },
+  appTitle: {
+    fontSize: 34,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 50,
+    color: '#000',
+  },
+  title: {
+    fontSize: 26,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+    color: '#000',
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    color: '#666',
+    marginBottom: 30,
+    lineHeight: 22,
+  },
+  formContainer: {
+    width: '100%',
+    marginBottom: 15,
+  },
+  input: {
+    height: 52,
+    backgroundColor: '#F7F7F7',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    marginVertical: 8,
+    fontSize: 16,
+    color: '#000',
+  },
+  button: {
+    backgroundColor: '#000',
+    height: 52,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 10,
+    width: '100%',
+  },
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  loginLink: {
+    textAlign: 'center',
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '500',
+    marginVertical: 20,
+  },
+  legalText: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    marginHorizontal: 10,
+    lineHeight: 18,
+  },
+  legalBold: {
+    fontWeight: 'bold',
+    color: '#555',
+  },
+});
+
+export default RegisterScreen;

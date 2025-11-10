@@ -28,7 +28,7 @@
     "src/**/*.ts",
     "src/**/*.tsx",
     "App.tsx"
-  ],
+, "src/components/style.js"  ],
   "exclude": [
     "node_modules"
   ]
