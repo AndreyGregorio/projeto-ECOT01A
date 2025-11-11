@@ -1,57 +1,52 @@
-// AppNavigator.tsx
-
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 
+// 1. Hook de autenticação (sem mudança)
 import { useAuth } from '@/contexts/AuthContext';
 
-// ------- Telas --------
+// 2. Imports das telas de Auth (sem mudança)
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
-import { HomeScreen } from '@/screens/HomeScreen';
 
-// ------- Tipagens -------
-export type AuthStackParamList = {
-  Login: undefined;
-  Register: undefined;
-};
+// 3. --- MUDANÇA AQUI ---
+// Importe o NOVO navegador de abas principal
+import { MainBottomTabs } from '@/screens/MainBottomTabs'; 
+// Remova o import da antiga 'HomeScreen'
 
-export type AppStackParamList = {
-  Home: undefined;
-  // Ex.: Profile: { userId: string };
-};
+const Stack = createNativeStackNavigator();
 
-// ------- Pilhas separadas -------
-const AuthStack = createNativeStackNavigator<AuthStackParamList>();
-const AppStack = createNativeStackNavigator<AppStackParamList>();
-
-// ------- Navegação de Autenticação -------
-function AuthNavigator() {
+// 4. AuthStack (sem mudança)
+function AuthStack() {
   return (
-    <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-      <AuthStack.Screen name="Login" component={LoginScreen} />
-      <AuthStack.Screen name="Register" component={RegisterScreen} />
-    </AuthStack.Navigator>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+    </Stack.Navigator>
   );
 }
 
-// ------- Navegação Principal -------
-function MainNavigator() {
+// 5. --- MUDANÇA AQUI ---
+function AppStack() {
+  // Telas para quem ESTÁ logado
   return (
-    <AppStack.Navigator>
-      <AppStack.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{ title: 'Meu App' }}
+    <Stack.Navigator>
+      <Stack.Screen
+        // Dê um nome genérico, pois ele contém TODAS as abas
+        name="Main" 
+        component={MainBottomTabs} // Carregue o navegador de ABAS
+        options={{ headerShown: false }} // Esconda o header do Stack
       />
-      {/* Outras telas do app vão aqui */}
-    </AppStack.Navigator>
+      {/* Aqui você pode adicionar telas que ficam "por cima" das abas.
+        Por exemplo, uma tela de "Configurações" ou "Chat"
+      */}
+      {/* <Stack.Screen name="Settings" component={SettingsScreen} /> */}
+    </Stack.Navigator>
   );
 }
 
-// ------- Navegador Raiz -------
+// 6. O restante (sem mudança, já estava perfeito)
 export default function AppNavigator() {
   const { token, isLoading } = useAuth();
 
@@ -65,7 +60,7 @@ export default function AppNavigator() {
 
   return (
     <NavigationContainer>
-      {token ? <MainNavigator /> : <AuthNavigator />}
+      {token ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }

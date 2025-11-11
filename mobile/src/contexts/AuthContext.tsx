@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
 // Seu IP da API
-const API_URL = 'http://200.235.82.88:3000'; 
+const API_URL = 'http://200.235.87.169:3000'; 
 
 // --- Tipos para o TSX ---
 
@@ -11,7 +11,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  avatar_url?: string | null; 
+  avatar_url?: string | null; // <-- MUDANÇA: Adicionada a URL do avatar (opcional)
 }
 
 interface AuthContextData {
@@ -19,10 +19,9 @@ interface AuthContextData {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  // <--- MUDANÇA 1: A FUNÇÃO AGORA PROMETE UM BOOLEAN
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+  register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  updateUserContext: (updatedUser: User) => void; 
+  updateUserContext: (updatedUser: User) => void; // <-- MUDANÇA: Função para atualizar o user
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -39,6 +38,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         const storedToken = await AsyncStorage.getItem('token');
         if (storedToken) {
           setToken(storedToken);
+          // Agora o 'jwtDecode' entende o 'avatar_url' graças à interface User
           const decodedUser = jwtDecode<User>(storedToken); 
           setUser(decodedUser);
         }
@@ -51,7 +51,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     loadToken();
   }, []);
 
-  // 2. Função de Login (Sem mudanças, mas é chamada pelo register)
+  // 2. Função de Login
   const login = async (email: string, password: string) => {
     try {
       const response = await fetch(`${API_URL}/login`, {
@@ -66,11 +66,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error(data.error || 'Erro ao logar');
       }
 
+      // <-- MUDANÇA: O backend agora retorna { token, user }
+      // Não precisamos mais decodificar, o backend já envia o objeto 'user'
       const { token, user } = data; 
 
       await AsyncStorage.setItem('token', token);
       setToken(token);
-      setUser(user);
+      setUser(user); // <-- MUDANÇA: Seta o usuário vindo da resposta da API
 
     } catch (error) {
       console.error('Erro no login:', error);
@@ -78,9 +80,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 3. Função de Cadastro (CORRIGIDA)
-  // <--- MUDANÇA 2: Definindo o tipo de retorno explicitamente
-  const register = async (name: string, email: string, password: string): Promise<boolean> => {
+  // 3. Função de Cadastro
+  const register = async (name: string, email: string, password: string) => {
     try {
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
@@ -91,19 +92,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       const data = await response.json();
 
       if (!response.ok) {
-        // Se a API falhar (ex: email já existe), retorna false
-        console.error(data.error || 'Erro ao cadastrar');
-        return false; // <--- MUDANÇA 3: RETORNA FALSE EM VEZ DE LANÇAR ERRO
+        throw new Error(data.error || 'Erro ao cadastrar');
       }
       
-      // Tenta logar automaticamente
+      // Tenta logar automaticamente (a função 'login' já foi corrigida)
       await login(email, password);
-      
-      return true; // <--- MUDANÇA 4: RETORNA TRUE SE TUDO DEU CERTO
 
     } catch (error) {
       console.error('Erro no cadastro:', error);
-      return false; // Retorna false se houver erro de rede ou no login
+      throw error; 
     }
   };
 
@@ -118,7 +115,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 5. Função de atualização
+  // <-- MUDANÇA: Função para atualizar o usuário de outros componentes
   const updateUserContext = (updatedUser: User) => {
     setUser(updatedUser);
   };
@@ -130,9 +127,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         token, 
         isLoading, 
         login, 
-        register, // Agora esta função está correta
+        register, 
         logout, 
-        updateUserContext 
+        updateUserContext // <-- MUDANÇA: Fornece a nova função
       }}
     >
       {children}
