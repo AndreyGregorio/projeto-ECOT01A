@@ -1,128 +1,146 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_URL } from '@/services/api';
-import { Alert } from 'react-native';
+import { jwtDecode } from 'jwt-decode';
 
-// 1. --- MUDANÇA AQUI ---
-// A interface da função 'login' foi atualizada
+// Seu IP da API
+const API_URL = 'http://200.235.82.88:3000'; 
+
+// --- Tipos para o TSX ---
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  avatar_url?: string | null; 
+}
+
 interface AuthContextData {
+  user: User | null;
   token: string | null;
-  isLoading: boolean; 
-  login: (email: string, password: string) => Promise<boolean>; // <- De 'name, pass' para 'email, password'
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  // <--- MUDANÇA 1: A FUNÇÃO AGORA PROMETE UM BOOLEAN
   register: (name: string, email: string, password: string) => Promise<boolean>;
   logout: () => void;
+  updateUserContext: (updatedUser: User) => void; 
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Efeito para carregar o token (Está perfeito, sem mudanças)
+  // 1. Carregar token ao iniciar o app
   useEffect(() => {
-    async function loadToken() {
+    const loadToken = async () => {
       try {
         const storedToken = await AsyncStorage.getItem('token');
         if (storedToken) {
           setToken(storedToken);
+          const decodedUser = jwtDecode<User>(storedToken); 
+          setUser(decodedUser);
         }
       } catch (e) {
         console.error('Falha ao carregar token', e);
       } finally {
-        setIsLoading(false); 
+        setIsLoading(false);
       }
-    }
+    };
     loadToken();
   }, []);
 
-  // --- 6. FUNÇÃO DE LOGIN (MODIFICADA) ---
-  // --- 2. MUDANÇA AQUI ---
-  // A função agora recebe 'email' e 'password'
+  // 2. Função de Login (Sem mudanças, mas é chamada pelo register)
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // --- 3. MUDANÇA AQUI ---
-        // Enviamos 'email' e 'password' no body
         body: JSON.stringify({ email, password }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        Alert.alert('Erro no Login', data.error || 'Credenciais inválidas.');
-        return false;
+        throw new Error(data.error || 'Erro ao logar');
       }
 
-      setToken(data.token); 
-      await AsyncStorage.setItem('token', data.token); 
-      return true;
+      const { token, user } = data; 
 
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Erro de Conexão', `Não foi possível conectar ao servidor: ${e.message}`);
-      return false;
-    } finally {
-      setIsLoading(false);
+      await AsyncStorage.setItem('token', token);
+      setToken(token);
+      setUser(user);
+
+    } catch (error) {
+      console.error('Erro no login:', error);
+      throw error; 
     }
   };
 
-  // --- 7. FUNÇÃO DE REGISTRO (Está correta, sem mudanças) ---
-  const register = async (name: string, email: string, password: string) => {
-    setIsLoading(true);
+  // 3. Função de Cadastro (CORRIGIDA)
+  // <--- MUDANÇA 2: Definindo o tipo de retorno explicitamente
+  const register = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
       });
-
+      
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.error === 'Email already exists') {
-          Alert.alert('Erro', 'Este email já está em uso.');
-        } else {
-          Alert.alert('Erro no Cadastro', data.error || 'Não foi possível cadastrar.');
-        }
-        return false;
+        // Se a API falhar (ex: email já existe), retorna false
+        console.error(data.error || 'Erro ao cadastrar');
+        return false; // <--- MUDANÇA 3: RETORNA FALSE EM VEZ DE LANÇAR ERRO
       }
+      
+      // Tenta logar automaticamente
+      await login(email, password);
+      
+      return true; // <--- MUDANÇA 4: RETORNA TRUE SE TUDO DEU CERTO
 
-      Alert.alert('Cadastro Realizado!', 'Usuário criado com sucesso. Faça o login agora.');
-      return true;
-
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Erro de Conexão', `Não foi possível conectar ao servidor: ${e.message}`);
-      return false;
-    } finally {
-      setIsLoading(false);
+    } catch (error) {
+      console.error('Erro no cadastro:', error);
+      return false; // Retorna false se houver erro de rede ou no login
     }
   };
 
-  // --- 8. FUNÇÃO DE LOGOUT (Está correta, sem mudanças) ---
+  // 4. Função de Logout
   const logout = async () => {
-    setIsLoading(true);
-    setToken(null); 
-    await AsyncStorage.removeItem('token'); 
-    setIsLoading(false);
+    try {
+      await AsyncStorage.removeItem('token');
+      setToken(null);
+      setUser(null);
+    } catch (e) {
+      console.error('Falha ao fazer logout', e);
+    }
+  };
+
+  // 5. Função de atualização
+  const updateUserContext = (updatedUser: User) => {
+    setUser(updatedUser);
   };
 
   return (
-    <AuthContext.Provider value={{ token, isLoading, login, register, logout }}>
+    <AuthContext.Provider 
+      value={{ 
+        user, 
+        token, 
+        isLoading, 
+        login, 
+        register, // Agora esta função está correta
+        logout, 
+        updateUserContext 
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
 };
 
-// --- 10. Hook (Está correto, sem mudanças) ---
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-  return context;
-}
+// Hook customizado
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
