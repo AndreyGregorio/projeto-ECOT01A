@@ -98,6 +98,7 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
 export default function HomeScreen() {
   const { API_URL, token, user } = useAuth(); 
   
+<<<<<<< HEAD
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -121,6 +122,15 @@ export default function HomeScreen() {
       setLoading(false);
       setRefreshing(false);
     }
+=======
+  // O 'logout' e 'handleSair' ainda podem existir aqui, 
+  // mas o botão que chama 'handleSair' vai para outro lugar
+  // (como a tela de Perfil ou o CustomTopTabBar)
+  const { logout } = useAuth();
+  const handleSair = () => {
+    console.log("Usuário clicou em Sair");
+    logout(); 
+>>>>>>> 5e4eb2c (bug no home resolvido)
   };
 
   useFocusEffect(useCallback(() => { setLoading(true); fetchPosts(); }, [user]));
@@ -162,6 +172,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
+<<<<<<< HEAD
       <FlatList
         data={posts}
         renderItem={({ item }) => (
@@ -183,6 +194,35 @@ export default function HomeScreen() {
           </View>
         }
       />
+=======
+      
+      {/* O HEADER FOI REMOVIDO DAQUI. 
+        O 'HomeTopTabs' já cuida disso.
+      */}
+
+      {/* 2. FEED (Posts Fixos) */}
+      <ScrollView style={styles.feed} contentContainerStyle={{ paddingBottom: 20 }}>
+        
+        <PostFixo 
+          autor="República Faraó" 
+          conteudo="Festa do Pijama NESTE SÁBADO! Ingressos no link da bio. Não perca!" 
+        />
+        <PostFixo 
+          autor="Atlética Eng" 
+          conteudo="VENDAS ABERTAS para os Jogos Universitários. Garanta seu pacote!" 
+        />
+        <PostFixo 
+          autor="D.A. Computação" 
+          conteudo="Semana da Computação confirmada. Palestrantes em breve." 
+        />
+
+      </ScrollView>
+
+      {/* A TAB BAR MANUAL FOI REMOVIDA DAQUI.
+        O 'MainBottomTabs' já cuida disso.
+      */}
+
+>>>>>>> 5e4eb2c (bug no home resolvido)
     </SafeAreaView>
   );
 }

@@ -10,11 +10,18 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 
+<<<<<<< HEAD
 // 3. Imports das Telas do App (Logado)
 import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
 import SettingsScreen from '@/screens/SettingsScreen';
 import EditProfileScreen from '@/screens/EditProfileScreen';
 import CommentsScreen from '@/screens/CommentsScreen'; // <-- A importação já estava correta
+=======
+// 3. --- MUDANÇA AQUI ---
+// Importe o NOVO navegador de abas principal
+import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
+// Remova o import da antiga 'HomeScreen'
+>>>>>>> 5e4eb2c (bug no home resolvido)
 
 const Stack = createNativeStackNavigator();
 
