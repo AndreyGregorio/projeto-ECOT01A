@@ -32,28 +32,22 @@ const PostFixo: React.FC<PostProps> = ({ autor, conteudo }) => (
 
 export default function HomeScreen() {
   
-  // 👇 MUDANÇA 2: Pegar a função logout do contexto
+  // O 'logout' e 'handleSair' ainda podem existir aqui, 
+  // mas o botão que chama 'handleSair' vai para outro lugar
+  // (como a tela de Perfil ou o CustomTopTabBar)
   const { logout } = useAuth();
-  
-  // 👇 MUDANÇA 3: Usar a função logout no handleSair
   const handleSair = () => {
-    // Adicione sua lógica de logout aqui
     console.log("Usuário clicou em Sair");
-    logout(); // <--- A MÁGICA ACONTECE AQUI
+    logout(); 
   };
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
       
-      {/* 1. HEADER (Cabeçalho) */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitulo}>Para você</Text>
-        {/* Botão de Sair (agora funcional) */}
-        <TouchableOpacity onPress={handleSair} style={styles.botaoSair}>
-          <Feather name="log-out" size={24} color="#333" />
-        </TouchableOpacity>
-      </View>
+      {/* O HEADER FOI REMOVIDO DAQUI. 
+        O 'HomeTopTabs' já cuida disso.
+      */}
 
       {/* 2. FEED (Posts Fixos) */}
       <ScrollView style={styles.feed} contentContainerStyle={{ paddingBottom: 20 }}>
@@ -73,33 +67,10 @@ export default function HomeScreen() {
 
       </ScrollView>
 
-      {/* 3. TAB BAR (Barra de Navegação) */}
-      {/* Nota: Se esta tela está DENTRO do seu MainBottomTabs, 
-        você não precisa declarar esta TabBar aqui. 
-        O MainBottomTabs já vai renderizar ela.
-        Vou deixar aqui por via das dúvidas. 
+      {/* A TAB BAR MANUAL FOI REMOVIDA DAQUI.
+        O 'MainBottomTabs' já cuida disso.
       */}
-      <View style={styles.tabBar}>
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="home" size={24} color="#000" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="search" size={24} color="#888" />
-        </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.tabItem, styles.tabItemCentral]}>
-          <Ionicons name="add" size={32} color="#FFF" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem}>
-          <Ionicons name="notifications-outline" size={24} color="#888" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.tabItem}>
-          <MaterialCommunityIcons name="account-circle" size={24} color="#888" />
-        </TouchableOpacity>
-      </View>
     </SafeAreaView>
   );
 }

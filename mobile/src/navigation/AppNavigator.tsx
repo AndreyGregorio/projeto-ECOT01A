@@ -12,7 +12,7 @@ import RegisterScreen from '@/screens/RegisterScreen';
 
 // 3. --- MUDANÇA AQUI ---
 // Importe o NOVO navegador de abas principal
-import { MainBottomTabs } from '@/screens/MainBottomTabs'; 
+import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
 // Remova o import da antiga 'HomeScreen'
 
 const Stack = createNativeStackNavigator();

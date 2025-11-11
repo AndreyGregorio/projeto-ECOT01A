@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
-import { HomeTopTabs } from './HomeTopTabs';
+import { HomeTopTabs } from '@/navigation/HomeTopTabs';
 
 // ... (seus placeholders de tela)
 const GroupsScreen = () => (
