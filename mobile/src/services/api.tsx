@@ -14,7 +14,7 @@ const PORTA = '3000'; // Ou 3333, 8080, etc. Use a porta que seu servidor está 
 // Opção 3: Se você está usando seu CELULAR FÍSICO (Expo Go)
 // Você precisa descobrir o IP da sua máquina na rede Wi-Fi.
 // (Veja como descobrir abaixo)
-const IP = '192.168.15.7'; // <-- Exemplo! Troque pelo seu IP.
+const IP = '192.168.15.17'; // <-- Exemplo! Troque pelo seu IP.
 
 // ----------------------------------------------------
 // A URL final que será usada no seu app

@@ -3,33 +3,17 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 
-// 1. Hook de autenticação 
+// 1. Hook de autenticação (sem mudança)
 import { useAuth } from '@/contexts/AuthContext';
 
-// 2. Imports das telas de Auth 
+// 2. Imports das telas de Auth (sem mudança)
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-// 3. Imports das Telas do App (Logado)
-import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
-import SettingsScreen from '@/screens/SettingsScreen';
-import EditProfileScreen from '@/screens/EditProfileScreen';
-import CommentsScreen from '@/screens/CommentsScreen'; // <-- A importação já estava correta
-=======
 // 3. --- MUDANÇA AQUI ---
 // Importe o NOVO navegador de abas principal
 import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
 // Remova o import da antiga 'HomeScreen'
->>>>>>> 5e4eb2c (bug no home resolvido)
-=======
-// 3. Imports das Telas do App (Logado)
-import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
-import SettingsScreen from '@/screens/SettingsScreen';
-import EditProfileScreen from '@/screens/EditProfileScreen';
-import CommentsScreen from '@/screens/CommentsScreen'; // <-- A importação já estava correta
->>>>>>> 02bccf4 (MVP INTERMEDIÁRIO)
 
 const Stack = createNativeStackNavigator();
 
@@ -47,33 +31,17 @@ function AuthStack() {
 function AppStack() {
   // Telas para quem ESTÁ logado
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator>
       <Stack.Screen
-        // Contém todas as suas abas (Home, Perfil, etc.)
+        // Dê um nome genérico, pois ele contém TODAS as abas
         name="Main" 
-        component={MainBottomTabs}
+        component={MainBottomTabs} // Carregue o navegador de ABAS
+        options={{ headerShown: false }} // Esconda o header do Stack
       />
-      
-      <Stack.Screen 
-        name="Settings" 
-        component={SettingsScreen} 
-      />
-
-      {/* <-- MUDANÇA 1: Removi os {} extras daqui --> */}
-
-      <Stack.Screen 
-        name="EditProfile" 
-        component={EditProfileScreen} 
-      />
-
-      {/* <-- MUDANÇA 2: Adicionada a tela de Comentários --> */}
-      {/* Agora, quando o PostItem chamar 'navigation.navigate('Comments')',
-          o app saberá para onde ir.
+      {/* Aqui você pode adicionar telas que ficam "por cima" das abas.
+        Por exemplo, uma tela de "Configurações" ou "Chat"
       */}
-      <Stack.Screen 
-        name="Comments" 
-        component={CommentsScreen} 
-      />
+      {/* <Stack.Screen name="Settings" component={SettingsScreen} /> */}
     </Stack.Navigator>
   );
 }
