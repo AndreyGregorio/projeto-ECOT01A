@@ -68,6 +68,7 @@ app.post('/register', async (req, res) => {
 });
 
 // --- Rota 2: Login (Sem mudança) ---
+// (O seu código de login está com 'expiresIn: 1h'. Mude para '90d' se quiser)
 app.post('/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -84,7 +85,7 @@ app.post('/login', async (req, res) => {
           id: user.id, name: user.name, email: user.email,
           course: user.course, bio: user.bio, avatar_url: user.avatar_url
         };
-        const token = jwt.sign(userPayload, "seuSegredoJWT", { expiresIn: '1h' });
+        const token = jwt.sign(userPayload, "seuSegredoJWT", { expiresIn: '90d' }); // <-- Mudei para 90d
         res.json({ token, user: userPayload });
     } catch (err) {
         console.error(err.message);
@@ -92,12 +93,15 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// --- Rota 3: Atualizar Perfil (TEXTO) (Sem mudança) ---
+// --- Rota 3: Atualizar Perfil (TEXTO) ---
+// (Vou adicionar os 'parseInt' que corrigimos antes)
 app.put('/profile/:id', verifyToken, async (req, res) => {
     try {
-        const { id: profileId } = req.params;
+        const profileId = parseInt(req.params.id, 10);
+        if (isNaN(profileId)) return res.status(400).json({ error: "ID inválido." });
+
         const { name, course, bio } = req.body; 
-        if (!req.user || req.user.id !== parseInt(profileId, 10)) {
+        if (!req.user || req.user.id !== profileId) {
             return res.status(403).json({ error: 'Acesso negado.' });
         }
         if (!name) {
@@ -118,7 +122,8 @@ app.put('/profile/:id', verifyToken, async (req, res) => {
     }
 });
 
-// --- Rota 4: UPLOAD DE FOTO DO PERFIL (Sem mudança) ---
+// --- Rota 4: UPLOAD DE FOTO DO PERFIL ---
+// (Vou adicionar a correção do caminho relativo)
 app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (req, res) => {
   try {
     if (!req.user) {
@@ -128,8 +133,10 @@ app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (
     if (!req.file) {
       return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     }
-    const filePath = req.file.path;
-    const fileUrl = `http://192.168.15.17:3000/${filePath.replace(/\\/g, '/')}`;
+    
+    // ✅ CORREÇÃO: Salvar apenas o caminho relativo
+    const fileUrl = `/${req.file.path.replace(/\\/g, '/')}`;
+
     const updateQuery = await pool.query(
       `UPDATE users SET avatar_url = $1 WHERE id = $2
        RETURNING id, name, email, course, bio, avatar_url`,
@@ -145,7 +152,8 @@ app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (
   }
 });
 
-// --- Rota 5: CRIAR UM NOVO POST (Sem mudança) ---
+// --- Rota 5: CRIAR UM NOVO POST ---
+// (Vou adicionar a correção do caminho relativo)
 app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => {
   try {
     if (!req.user) {
@@ -158,8 +166,8 @@ app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => 
       return res.status(400).json({ error: 'O post não pode estar vazio.' });
     }
     if (req.file) {
-      const filePath = req.file.path;
-      imageUrl = `http://192.168.15.17:3000/${filePath.replace(/\\/g, '/')}`;
+      // ✅ CORREÇÃO: Salvar apenas o caminho relativo
+      imageUrl = `/${req.file.path.replace(/\\/g, '/')}`;
     }
     const newPost = await pool.query(
       `INSERT INTO posts (user_id, content, image_url) VALUES ($1, $2, $3) RETURNING *`,
@@ -174,7 +182,7 @@ app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => 
 
 
 // --- Rota 6: BUSCAR TODOS OS POSTS (O FEED) ---
-// <-- MUDANÇA: Adicionada contagem de comentários -->
+// <-- MUDANÇA: Adicionado 'author_course' -->
 app.get('/posts', verifyToken, async (req, res) => {
   try {
     const myUserId = req.user ? req.user.id : 0;
@@ -186,14 +194,13 @@ app.get('/posts', verifyToken, async (req, res) => {
          posts.created_at, 
          users.name AS author_name, 
          users.avatar_url AS author_avatar,
+         users.course AS author_course, -- <-- A SUA MUDANÇA ESTÁ AQUI
          
          (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
          EXISTS (
            SELECT 1 FROM post_likes 
            WHERE post_id = posts.id AND user_id = $1
          ) AS liked_by_me,
-         
-         -- <-- MUDANÇA AQUI -->
          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
          
        FROM posts
@@ -210,10 +217,13 @@ app.get('/posts', verifyToken, async (req, res) => {
 
 
 // --- Rota 7: BUSCAR POSTS DE UM USUÁRIO ESPECÍFICO ---
-// <-- MUDANÇA: Adicionada contagem de comentários -->
+// <-- MUDANÇA: Adicionado 'author_course' e 'parseInt' -->
 app.get('/posts/user/:id', verifyToken, async (req, res) => {
   try {
-    const { id: profileUserId } = req.params;
+    // ✅ CORREÇÃO parseInt
+    const profileUserId = parseInt(req.params.id, 10);
+    if (isNaN(profileUserId)) return res.status(400).json({ error: "ID inválido." });
+
     const myUserId = req.user ? req.user.id : 0;
     const feedQuery = await pool.query(
       `SELECT 
@@ -223,13 +233,13 @@ app.get('/posts/user/:id', verifyToken, async (req, res) => {
          posts.created_at, 
          users.name AS author_name, 
          users.avatar_url AS author_avatar,
+         users.course AS author_course, -- <-- A SUA MUDANÇA ESTÁ AQUI
+         
          (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
          EXISTS (
            SELECT 1 FROM post_likes 
            WHERE post_id = posts.id AND user_id = $1
          ) AS liked_by_me,
-         
-         -- <-- MUDANÇA AQUI -->
          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
 
        FROM posts
@@ -246,13 +256,17 @@ app.get('/posts/user/:id', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 8: DELETAR UM POST (Sem mudança) ---
+// --- Rota 8: DELETAR UM POST ---
+// (Vou adicionar o 'parseInt' que corrigimos antes)
 app.delete('/posts/:id', verifyToken, async (req, res) => {
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
     }
-    const { id: postId } = req.params;
+    // ✅ CORREÇÃO parseInt
+    const postId = parseInt(req.params.id, 10);
+    if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
+    
     const { id: userId } = req.user;
     const deleteQuery = await pool.query(
       "DELETE FROM posts WHERE id = $1 AND user_id = $2", 
@@ -269,12 +283,16 @@ app.delete('/posts/:id', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 9: CURTIR/DESCURTIR (Sem mudança) ---
+// --- Rota 9: CURTIR/DESCURTIR ---
+// (Vou adicionar o 'parseInt' e o gatilho de notificação)
 app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
-  const { id: postId } = req.params;
+  // ✅ CORREÇÃO parseInt
+  const postId = parseInt(req.params.id, 10);
+  if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
+  
   const { id: userId } = req.user;
   try {
     const likeQuery = await pool.query(
@@ -292,6 +310,20 @@ app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
         "INSERT INTO post_likes (user_id, post_id) VALUES ($1, $2)",
         [userId, postId]
       );
+      
+      // Gatilho de Notificação (como tínhamos antes)
+      try {
+        await pool.query(
+          `INSERT INTO notifications (recipient_id, sender_id, post_id, type)
+           SELECT user_id, $1, $2, 'like'
+           FROM posts
+           WHERE id = $2 AND user_id != $1`,
+          [userId, postId]
+        );
+      } catch (err) {
+        console.error("Erro ao criar notificação de like:", err.message);
+      }
+      
       res.status(200).json({ liked: true });
     }
   } catch (err) {
@@ -304,34 +336,28 @@ app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
 });
 
 
-// <-- MUDANÇA: ADICIONADAS ROTAS 10 E 11 PARA COMENTÁRIOS -->
-
 // --- Rota 10: LER todos os comentários de um post ---
+// (Vou adicionar o 'parseInt')
 app.get('/posts/:id/comments', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
-  
   try {
-    const { id: postId } = req.params;
+    // ✅ CORREÇÃO parseInt
+    const postId = parseInt(req.params.id, 10);
+    if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
 
-    // Fazemos um JOIN para pegar o nome e o avatar de quem comentou
     const commentsQuery = await pool.query(
       `SELECT
-         comments.id,
-         comments.content,
-         comments.created_at,
-         users.name AS author_name,
-         users.avatar_url AS author_avatar
+         comments.id, comments.content, comments.created_at,
+         users.name AS author_name, users.avatar_url AS author_avatar
        FROM comments
        JOIN users ON comments.user_id = users.id
        WHERE comments.post_id = $1
-       ORDER BY comments.created_at ASC`, // Mais antigo primeiro
+       ORDER BY comments.created_at ASC`,
       [postId]
     );
-
     res.status(200).json(commentsQuery.rows);
-
   } catch (err) {
     console.error("Erro ao buscar comentários:", err.message);
     res.status(500).json({ error: 'Erro interno do servidor.' });
@@ -340,44 +366,77 @@ app.get('/posts/:id/comments', verifyToken, async (req, res) => {
 
 
 // --- Rota 11: CRIAR um novo comentário em um post ---
+// (Vou adicionar o 'parseInt' e o gatilho de notificação)
 app.post('/posts/:id/comments', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
-
   try {
-    const { id: postId } = req.params;      // ID do Post (da URL)
-    const { content } = req.body;           // Texto do comentário
+    // ✅ CORREÇÃO parseInt
+    const postId = parseInt(req.params.id, 10);
+    if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
     
-    // Pegamos todos os dados do user do token (jeito certo)
+    const { content } = req.body;
     const { id: userId, name: authorName, avatar_url: authorAvatar } = req.user;
 
     if (!content) {
       return res.status(400).json({ error: 'O comentário não pode estar vazio.' });
     }
-
-    // Insere o novo comentário
     const newComment = await pool.query(
       `INSERT INTO comments (user_id, post_id, content)
        VALUES ($1, $2, $3)
-       RETURNING id, content, created_at`, // Pega só o que precisamos
+       RETURNING id, content, created_at`,
       [userId, postId, content]
     );
 
-    // Constrói o objeto de resposta para a UI
-    // (O frontend precisa saber o nome/avatar sem ter que pedir de novo)
+    // Gatilho de Notificação (como tínhamos antes)
+    try {
+      await pool.query(
+        `INSERT INTO notifications (recipient_id, sender_id, post_id, type)
+         SELECT user_id, $1, $2, 'comment'
+         FROM posts
+         WHERE id = $2 AND user_id != $1`,
+        [userId, postId] 
+      );
+    } catch (err) {
+      console.error("Erro ao criar notificação de comment:", err.message);
+    }
+    
     const commentWithAuthor = {
       id: newComment.rows[0].id,
       content: newComment.rows[0].content,
       created_at: newComment.rows[0].created_at,
-      author_name: authorName,      // Veio do token
-      author_avatar: authorAvatar   // Veio do token
+      author_name: authorName,
+      author_avatar: authorAvatar
     };
-
     res.status(201).json(commentWithAuthor);
-
   } catch (err) {
     console.error("Erro ao criar comentário:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+
+// --- Rota 12: BUSCAR Notificações (Adicionada de volta) ---
+app.get('/notifications', verifyToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+  try {
+    const { id: myUserId } = req.user;
+    const notificationsQuery = await pool.query(
+      `SELECT
+         n.id, n.type, n.post_id, n.read, n.created_at,
+         u.name AS sender_name, u.avatar_url AS sender_avatar
+       FROM notifications AS n
+       JOIN users AS u ON n.sender_id = u.id
+       WHERE n.recipient_id = $1
+       ORDER BY n.created_at DESC`,
+      [myUserId]
+    );
+    res.status(200).json(notificationsQuery.rows);
+  } catch (err) {
+    console.error("Erro ao buscar notificações:", err.message);
     res.status(500).json({ error: 'Erro interno do servidor.' });
   }
 });

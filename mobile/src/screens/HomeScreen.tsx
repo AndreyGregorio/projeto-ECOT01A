@@ -3,7 +3,7 @@ import {
   StyleSheet, 
   View, 
   Text, 
-  SafeAreaView, 
+  SafeAreaView, // (Mantido como você pediu)
   FlatList,
   ActivityIndicator,
   Image,
@@ -13,7 +13,6 @@ import {
   TouchableOpacity 
 } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
-// <-- MUDANÇA 1: Importar o 'useNavigation'
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons'; 
 
@@ -25,47 +24,51 @@ export interface Post {
   created_at: string;
   author_name: string;
   author_avatar: string | null;
+  author_course: string | null; // <-- MUDANÇA 1: Adicionado
   total_likes: number;  
   liked_by_me: boolean;
-  total_comments: number; // <-- MUDANÇA 2: Adicionada a contagem
+  total_comments: number; 
 }
 
 // --- 2. ATUALIZAR O PostItem ---
 export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => void }> = ({ post, onToggleLike }) => {
   
+  // (Mantida a URL de imagem "quebrada", como você pediu)
   const authorAvatarSource = post.author_avatar ? { uri: post.author_avatar } : null; 
   const likeIcon = post.liked_by_me ? 'heart' : 'heart-outline';
   const likeColor = post.liked_by_me ? '#E23C3C' : '#333'; 
 
-  // <-- MUDANÇA 3: Pegar o hook de navegação
   const navigation = useNavigation<any>();
 
-  // Função para navegar para os comentários
   const goToComments = () => {
-    // Navega para a tela 'Comments' (que registramos no AppNavigator)
-    // e passa o 'postId' para ela saber quais comentários buscar.
     navigation.navigate('Comments', { postId: post.id });
   };
 
   return (
     <View style={styles.postContainer}>
-      {/* ... (Cabeçalho do Post - sem mudança) ... */}
+      {/* --- MUDANÇA 2: Header do Post atualizado --- */}
       <View style={styles.postHeader}>
         {authorAvatarSource ? (
           <Image source={authorAvatarSource} style={styles.postAvatar} />
         ) : (
           <View style={styles.postAvatar} />
         )}
-        <Text style={styles.postAutor}>{post.author_name}</Text>
+        {/* Adicionado um View para agrupar nome e curso */}
+        <View style={styles.postAutorContainer}>
+          <Text style={styles.postAutor}>{post.author_name}</Text>
+          {/* Mostra o curso SÓ SE ele existir */}
+          {post.author_course && (
+            <Text style={styles.postCurso}>{post.author_course}</Text>
+          )}
+        </View>
       </View>
       
-      {/* ... (Conteúdo do Post - sem mudança) ... */}
+      {/* Conteúdo (Mantida a URL de imagem "quebrada") */}
       {post.content && ( <Text style={styles.postConteudo}>{post.content}</Text> )}
       {post.image_url && ( <Image source={{ uri: post.image_url }} style={styles.postImage} /> )}
 
-      {/* --- SEÇÃO DE INTERAÇÃO ATUALIZADA --- */}
+      {/* --- SEÇÃO DE INTERAÇÃO (Sem mudança) --- */}
       <View style={styles.interactionBar}>
-        {/* Botão de Like (sem mudança) */}
         <TouchableOpacity 
           style={styles.interactionButton}
           onPress={() => onToggleLike(post.id)}
@@ -76,14 +79,13 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
           </Text>
         </TouchableOpacity>
         
-        {/* <-- MUDANÇA 4: Botão de Comentário agora é funcional --> */}
         <TouchableOpacity 
           style={styles.interactionButton}
-          onPress={goToComments} // <-- Chama a função de navegar
+          onPress={goToComments}
         >
           <Ionicons name="chatbubble-outline" size={24} color="#333" />
           <Text style={styles.interactionText}>
-            {post.total_comments} {/* <-- Mostra a contagem real */}
+            {post.total_comments}
           </Text>
         </TouchableOpacity>
       </View>
@@ -92,9 +94,7 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
 };
 
 // --- 3. HomeScreen (Componente Principal) ---
-// NENHUMA MUDANÇA NECESSÁRIA AQUI!
-// O 'fetchPosts' já pega todos os dados (incluindo 'total_comments')
-// e o 'handleToggleLike' já funciona.
+// (Sem mudança na lógica)
 export default function HomeScreen() {
   const { API_URL, token, user } = useAuth(); 
   
@@ -104,14 +104,11 @@ export default function HomeScreen() {
 
   const fetchPosts = async () => {
     if (!user) return; 
-    
     try {
       const response = await fetch(`${API_URL}/posts`, { 
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) { throw new Error('Falha ao buscar posts'); }
-      
-      // O 'data' agora magicamente inclui 'total_comments' vindo do backend
       const data: Post[] = await response.json(); 
       setPosts(data);
     } catch (error: any) {
@@ -127,27 +124,17 @@ export default function HomeScreen() {
   const onRefresh = useCallback(() => { setRefreshing(true); fetchPosts(); }, [user]);
 
   const handleToggleLike = async (postId: number) => {
-    
     setPosts(currentPosts => 
       currentPosts.map(p => {
         if (p.id === postId) {
-          
-          // --- A CORREÇÃO ESTÁ AQUI ---
-          // 1. Força o 'total_likes' (que é "1") a virar o número 1
           const currentLikes = Number(p.total_likes); 
-          
           const newLikedByMe = !p.liked_by_me;
-          
-          // 2. Agora a matemática funciona (1 + 1 = 2)
           const newTotalLikes = newLikedByMe ? currentLikes + 1 : currentLikes - 1; 
-          
           return { ...p, liked_by_me: newLikedByMe, total_likes: newTotalLikes };
         }
         return p;
       })
     );
-
-    // O resto da função (a chamada de API) continua igual
     try {
       await fetch(`${API_URL}/posts/${postId}/toggle-like`, {
         method: 'POST',
@@ -182,7 +169,6 @@ export default function HomeScreen() {
         )}
         keyExtractor={(item) => item.id.toString()}
         style={styles.feed}
-        // ... (RefreshControl e ListEmptyComponent sem mudança)
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
@@ -197,7 +183,7 @@ export default function HomeScreen() {
   );
 }
 
-// --- 4. ESTILOS (Sem mudança) ---
+// --- 4. ESTILOS (Adicionados novos estilos) ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F0F2F5', },
   feed: { flex: 1, },
@@ -208,7 +194,21 @@ const styles = StyleSheet.create({
   postContainer: { backgroundColor: '#FFFFFF', padding: 16, marginVertical: 8, marginHorizontal: 16, borderRadius: 8, elevation: 1, },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, },
   postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE', marginRight: 12, },
-  postAutor: { fontWeight: 'bold', fontSize: 16, },
+  
+  // <-- MUDANÇA 3: Novos estilos adicionados -->
+  postAutorContainer: {
+    flexDirection: 'column', // Empilha o nome e o curso
+  },
+  postAutor: { 
+    fontWeight: 'bold', 
+    fontSize: 16, 
+  },
+  postCurso: {
+    fontSize: 12,
+    color: '#666', // Um cinza para diferenciar
+  },
+  // --- Fim dos novos estilos ---
+
   postConteudo: { fontSize: 15, lineHeight: 22, marginBottom: 12, },
   postImage: { width: '100%', aspectRatio: 16/9, borderRadius: 8, backgroundColor: '#EEE', marginTop: 8, },
   interactionBar: {

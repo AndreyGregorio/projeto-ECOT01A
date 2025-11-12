@@ -2,36 +2,37 @@ import React from 'react';
 // 1. IMPORTE O TIPO CORRETO
 import {
   createMaterialTopTabNavigator,
-  MaterialTopTabBarProps, // <--- ESTE É O CARA
+  MaterialTopTabBarProps, 
 } from '@react-navigation/material-top-tabs';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import Constants from 'expo-constants'; // Agora vai funcionar
+import Constants from 'expo-constants'; 
 
-import  FeedScreen  from '@/screens/HomeScreen';
+import  FeedScreen  from '@/screens/HomeScreen'; // Esta é a sua tela "Para você"
 
-const SchedulesScreen = () => (
+// <-- MUDANÇA 1: Renomear o placeholder (e o texto)
+const CalendarScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Tela de Horários</Text>
+    <Text>Tela de Calendário</Text>
   </View>
 );
 
 const TopTab = createMaterialTopTabNavigator();
 
-// 2. CORRIJA A ASSINATURA E O USO DAS PROPS
-const CustomTopTabBar = (props: MaterialTopTabBarProps) => { // <--- RECEBA 'props'
-  // 3. USE 'props.state' e 'props.navigation'
+// O 'CustomTopTabBar' não precisa de nenhuma mudança,
+// ele já lê as rotas dinamicamente
+const CustomTopTabBar = (props: MaterialTopTabBarProps) => { 
   const { state, navigation } = props;
 
   return (
     <View style={styles.headerContainer}>
       <View style={styles.headerTabs}>
-        {state.routes.map((route, index) => { // <--- use state.routes
-          const isActive = state.index === index; // <--- use state.index
+        {state.routes.map((route, index) => { 
+          const isActive = state.index === index; 
           return (
             <TouchableOpacity
               key={route.key}
-              onPress={() => navigation.navigate(route.name)} // <--- use navigation.
+              onPress={() => navigation.navigate(route.name)}
               style={styles.tabButton}
             >
               <Text
@@ -62,12 +63,14 @@ const CustomTopTabBar = (props: MaterialTopTabBarProps) => { // <--- RECEBA 'pro
 export function HomeTopTabs() {
   return (
     <TopTab.Navigator
-      // 4. PASSE 'props' DIRETAMENTE
       tabBar={(props) => <CustomTopTabBar {...props} />}
       style={{ paddingTop: Constants.statusBarHeight }}
     >
-      <TopTab.Screen name="Horários" component={SchedulesScreen} />
+      {/* <-- MUDANÇA 2: Invertemos a ordem. "Para você" vem primeiro. */}
       <TopTab.Screen name="Para você" component={FeedScreen} />
+      
+      {/* <-- MUDANÇA 3: Renomeamos "Horários" para "Calendario" */}
+      <TopTab.Screen name="Calendario" component={CalendarScreen} />
     </TopTab.Navigator>
   );
 }
