@@ -1,3 +1,4 @@
+// @/screens/RegisterScreen.tsx (ATUALIZADO)
 import React, { useState } from 'react';
 import {
   View,
@@ -9,18 +10,16 @@ import {
   Platform,
   ScrollView,
   Alert,
-  ActivityIndicator, // Usado DENTRO do botão, não muda o layout
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuth } from '@/contexts/AuthContext'; // Lógica de autenticação
-
-// Importações para a navegação funcionar
+import { useAuth } from '@/contexts/AuthContext'; 
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { AuthStackParamList } from '@/navigation/AppNavigator'; // Tipos do seu AppNavigator
+// Ajuste o tipo se necessário
+type AuthStackParamList = { Login: undefined; Register: undefined; };
 
-// Tipo da navegação para esta tela
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
   'Register'
@@ -28,39 +27,38 @@ type RegisterScreenNavigationProp = NativeStackNavigationProp<
 
 const RegisterScreen: React.FC = () => {
   const [nome, setNome] = useState('');
+  const [username, setUsername] = useState(''); // <-- 1. ADICIONADO
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false); // Controla o loading
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   const { register } = useAuth();
   const navigation = useNavigation<RegisterScreenNavigationProp>();
 
-  // Função chamada pelo botão "Continuar"
   const handleRegister = async () => {
-    if (!nome.trim() || !email.trim() || !senha.trim()) {
+    // 2. Validação atualizada
+    if (!nome.trim() || !username.trim() || !email.trim() || !senha.trim()) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
     }
     
-    setIsSubmitting(true); // Ativa o loading
+    setIsSubmitting(true); 
     
     try {
-      const success = await register(nome, email, senha);
-      if (success) {
-        // Navega para o Login (como definido no AppNavigator)
-        navigation.navigate('Login'); 
-      }
-    } catch (error) {
+      // 3. Chamada de 'register' atualizada (com username)
+      await register(nome, username.toLowerCase(), email, senha);
+      // Se não deu erro, o login foi feito e o AuthProvider cuidou de tudo
+      // (Não precisa mais navegar para o Login, o usuário já está logado)
+      // navigation.navigate('Login'); <-- Removido, o 'register' já faz login
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Erro', 'Ocorreu um erro inesperado.');
+      Alert.alert('Erro no Cadastro', error.message || 'Ocorreu um erro inesperado.');
     } finally {
-      setIsSubmitting(false); // Desativa o loading
+      setIsSubmitting(false); 
     }
   };
 
-  // Função chamada pelo link "Login"
   const handleLogin = () => {
-    // Navega para a tela de Login (como definido no AppNavigator)
     navigation.navigate('Login');
   };
 
@@ -76,13 +74,11 @@ const RegisterScreen: React.FC = () => {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.appTitle}>UNIFEED</Text>
-
           <Text style={styles.title}>Criar uma conta</Text>
           <Text style={styles.subtitle}>
-            Insira seu e-mail universitário para se cadastrar neste aplicativo
+            Insira seu e-mail universitário para se cadastrar
           </Text>
 
-          {}
           <View style={styles.formContainer}>
             <TextInput
               style={styles.input}
@@ -91,6 +87,17 @@ const RegisterScreen: React.FC = () => {
               value={nome}
               onChangeText={setNome}
               autoCapitalize="words"
+              returnKeyType="next"
+              editable={!isSubmitting} 
+            />
+            {/* --- 4. CAMPO DE USERNAME ADICIONADO --- */}
+            <TextInput
+              style={styles.input}
+              placeholder="@username"
+              placeholderTextColor="#888"
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none" // NUNCA capitalizar usernames
               returnKeyType="next"
               editable={!isSubmitting} 
             />
@@ -117,17 +124,11 @@ const RegisterScreen: React.FC = () => {
             />
           </View>
 
-          {/* Botão Principal */}
           <TouchableOpacity 
             style={styles.button} 
             onPress={handleRegister} 
             disabled={isSubmitting} 
           >
-            {/* Isto é a única "mudança":
-              Se estiver carregando (isSubmitting = true), mostra o círculo.
-              Se não (isSubmitting = false), mostra o texto "Continuar".
-              O visual do botão não muda.
-            */}
             {isSubmitting ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
@@ -135,12 +136,10 @@ const RegisterScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          {/* Link de Login */}
           <TouchableOpacity onPress={handleLogin} disabled={isSubmitting}>
-            <Text style={styles.loginLink}>Login</Text>
+            <Text style={styles.loginLink}>Já tem uma conta? Login</Text>
           </TouchableOpacity>
 
-          {/* Texto Legal */}
           <Text style={styles.legalText}>
             Ao clicar em continuar, você concorda com os nossos
             <Text style={styles.legalBold}> Termos de Serviço </Text>
@@ -154,7 +153,7 @@ const RegisterScreen: React.FC = () => {
   );
 };
 
-
+// ... (seus estilos de RegisterScreen)
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

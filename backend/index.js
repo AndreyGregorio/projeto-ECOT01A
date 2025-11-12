@@ -1,4 +1,4 @@
-// --- index.js (no backend) ---
+// --- index.js (Atualizado pelo Gemini) ---
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -28,12 +28,15 @@ const upload = multer({ storage: storage });
 
 
 // --- Middleware de Autenticação (Sem mudança) ---
+// Este middleware é "opcional", o que é perfeito para nós.
+// Se o token existir, req.user será preenchido.
+// Se não, a rota continua, mas req.user será undefined.
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) { return next(); }
+  if (token == null) { return next(); } // Sem token, apenas continue
   jwt.verify(token, "seuSegredoJWT", (err, user) => {
-    if (err) { return next(); }
+    if (err) { return next(); } // Token inválido, continue sem usuário
     req.user = user; 
     next();
   });
@@ -44,48 +47,75 @@ app.get('/', (req, res) => {
     res.send('API está funcionando!');
 });
 
-// --- Rota 1: Cadastro (Sem mudança) ---
+// --- Rota 1: Cadastro ---
+// --- MODIFICADO: Adicionado 'username' ---
 app.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password) {
-        return res.status(400).json({ error: 'Nome, email e senha são obrigatórios.' });
+    // Agora esperamos 'username' no corpo da requisição
+    const { name, email, password, username } = req.body;
+    if (!name || !email || !password || !username) {
+        return res.status(400).json({ error: 'Nome, username, email e senha são obrigatórios.' });
     }
     try {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
+        
+        // Adiciona 'username' ao INSERT
         const newUser = await pool.query(
-            "INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) RETURNING id, name, email",
-            [name, email, hashedPassword]
+            `INSERT INTO users (name, email, password_hash, username) 
+             VALUES ($1, $2, $3, $4) 
+             RETURNING id, name, email, username, course, bio, avatar_url`,
+            [name, email, hashedPassword, username.toLowerCase()] // Salva username em minúsculas
         );
+        
         res.status(201).json(newUser.rows[0]);
     } catch (err) {
         console.error(err.message);
-        if (err.code === '23505') {
-            return res.status(400).json({ error: 'Email already exists' });
+        if (err.code === '23505') { // Erro de violação de unicidade
+            if (err.constraint.includes('email')) {
+                return res.status(400).json({ error: 'Email já existe.' });
+            }
+            if (err.constraint.includes('username')) {
+                return res.status(400).json({ error: 'Username já existe.' });
+            }
         }
         res.status(500).json({ error: 'Erro interno do servidor.' });
     }
 });
 
-// --- Rota 2: Login (Sem mudança) ---
-// (O seu código de login está com 'expiresIn: 1h'. Mude para '90d' se quiser)
+// --- Rota 2: Login ---
+// --- MODIFICADO: Agora aceita 'identifier' (email ou username) ---
 app.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    // 1. Mude de 'email' para 'identifier'
+    const { identifier, password } = req.body;
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'Identificador e senha são obrigatórios.' });
+    }
+
     try {
-        const userQuery = await pool.query("SELECT * FROM users WHERE email = $1", [email]);
+        // 2. A query SQL agora checa as DUAS colunas
+        const userQuery = await pool.query(
+          "SELECT * FROM users WHERE email = $1 OR username = $1", 
+          [identifier] // 3. Passa o 'identifier' para a query
+        );
+        
         if (userQuery.rows.length === 0) {
             return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
+        
         const user = userQuery.rows[0];
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
+        
+        // 4. O payload do token continua o mesmo (já tinha username)
         const userPayload = {
           id: user.id, name: user.name, email: user.email,
-          course: user.course, bio: user.bio, avatar_url: user.avatar_url
+          course: user.course, bio: user.bio, avatar_url: user.avatar_url,
+          username: user.username 
         };
-        const token = jwt.sign(userPayload, "seuSegredoJWT", { expiresIn: '90d' }); // <-- Mudei para 90d
+        
+        const token = jwt.sign(userPayload, "seuSegredoJWT", { expiresIn: '90d' }); 
         res.json({ token, user: userPayload });
     } catch (err) {
         console.error(err.message);
@@ -94,37 +124,45 @@ app.post('/login', async (req, res) => {
 });
 
 // --- Rota 3: Atualizar Perfil (TEXTO) ---
-// (Vou adicionar os 'parseInt' que corrigimos antes)
+// --- MODIFICADO: Adicionado 'username' ---
 app.put('/profile/:id', verifyToken, async (req, res) => {
     try {
         const profileId = parseInt(req.params.id, 10);
         if (isNaN(profileId)) return res.status(400).json({ error: "ID inválido." });
 
-        const { name, course, bio } = req.body; 
+        // Adiciona 'username'
+        const { name, course, bio, username } = req.body; 
+        
         if (!req.user || req.user.id !== profileId) {
             return res.status(403).json({ error: 'Acesso negado.' });
         }
-        if (!name) {
-            return res.status(400).json({ error: 'O nome é obrigatório.' });
+        if (!name || !username) {
+            return res.status(400).json({ error: 'Nome e username são obrigatórios.' });
         }
+        
         const updateQuery = await pool.query(
-            `UPDATE users SET name = $1, course = $2, bio = $3 WHERE id = $4
-             RETURNING id, name, email, course, bio, avatar_url`, 
-            [name, course, bio, profileId]
+            `UPDATE users SET name = $1, course = $2, bio = $3, username = $4 
+             WHERE id = $5
+             RETURNING id, name, email, username, course, bio, avatar_url`, 
+            [name, course, bio, username.toLowerCase(), profileId]
         );
+        
         if (updateQuery.rows.length === 0) {
             return res.status(404).json({ error: 'Usuário não encontrado.' });
         }
         res.status(200).json(updateQuery.rows[0]);
     } catch (err) {
         console.error(err.message);
+        if (err.code === '23505' && err.constraint.includes('username')) {
+            return res.status(400).json({ error: 'Esse username já está em uso.' });
+        }
         res.status(500).json({ error: 'Erro interno do servidor.' });
     }
 });
 
-// --- Rota 4: UPLOAD DE FOTO DO PERFIL ---
-// (Vou adicionar a correção do caminho relativo)
+// --- Rota 4: UPLOAD DE FOTO DO PERFIL (Sem mudança) ---
 app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (req, res) => {
+  // ... (código original sem mudança)
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -134,12 +172,11 @@ app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (
       return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
     }
     
-    // ✅ CORREÇÃO: Salvar apenas o caminho relativo
     const fileUrl = `/${req.file.path.replace(/\\/g, '/')}`;
 
     const updateQuery = await pool.query(
       `UPDATE users SET avatar_url = $1 WHERE id = $2
-       RETURNING id, name, email, course, bio, avatar_url`,
+       RETURNING id, name, email, username, course, bio, avatar_url`, // Adicionado username ao returning
       [fileUrl, userId]
     );
     if (updateQuery.rows.length === 0) {
@@ -152,9 +189,10 @@ app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (
   }
 });
 
-// --- Rota 5: CRIAR UM NOVO POST ---
-// (Vou adicionar a correção do caminho relativo)
+
+// --- Rota 5: CRIAR UM NOVO POST (Sem mudança) ---
 app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => {
+  // ... (código original sem mudança)
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -166,7 +204,6 @@ app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => 
       return res.status(400).json({ error: 'O post não pode estar vazio.' });
     }
     if (req.file) {
-      // ✅ CORREÇÃO: Salvar apenas o caminho relativo
       imageUrl = `/${req.file.path.replace(/\\/g, '/')}`;
     }
     const newPost = await pool.query(
@@ -181,31 +218,33 @@ app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => 
 });
 
 
-// --- Rota 6: BUSCAR TODOS OS POSTS (O FEED) ---
-// <-- MUDANÇA: Adicionado 'author_course' -->
+// --- Rota 6: BUSCAR TODOS OS POSTS (FEED "PARA VOCÊ") ---
+// --- MODIFICADO: Adicionado 'author_username' ---
 app.get('/posts', verifyToken, async (req, res) => {
   try {
     const myUserId = req.user ? req.user.id : 0;
     const feedQuery = await pool.query(
       `SELECT 
-         posts.id, 
-         posts.content, 
-         posts.image_url, 
-         posts.created_at, 
-         users.name AS author_name, 
-         users.avatar_url AS author_avatar,
-         users.course AS author_course, -- <-- A SUA MUDANÇA ESTÁ AQUI
-         
-         (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
-         EXISTS (
-           SELECT 1 FROM post_likes 
-           WHERE post_id = posts.id AND user_id = $1
-         ) AS liked_by_me,
-         (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
-         
-       FROM posts
-       JOIN users ON posts.user_id = users.id
-       ORDER BY posts.created_at DESC`,
+          posts.id, 
+          posts.content, 
+          posts.image_url, 
+          posts.created_at, 
+          users.name AS author_name, 
+          users.avatar_url AS author_avatar,
+          users.course AS author_course,
+          users.username AS author_username, -- <-- ADICIONADO AQUI
+          
+          (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
+          EXISTS (
+            SELECT 1 FROM post_likes 
+            WHERE post_id = posts.id AND user_id = $1
+          ) AS liked_by_me,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
+          
+        FROM posts
+        JOIN users ON posts.user_id = users.id
+        ORDER BY posts.created_at DESC
+        LIMIT 20`, // Adicionei um LIMIT para não sobrecarregar
       [myUserId]
     );
     res.status(200).json(feedQuery.rows);
@@ -217,35 +256,42 @@ app.get('/posts', verifyToken, async (req, res) => {
 
 
 // --- Rota 7: BUSCAR POSTS DE UM USUÁRIO ESPECÍFICO ---
-// <-- MUDANÇA: Adicionado 'author_course' e 'parseInt' -->
-app.get('/posts/user/:id', verifyToken, async (req, res) => {
+// --- MODIFICADO: Mudei de '/posts/user/:id' para '/posts/user/:username' ---
+app.get('/posts/user/:username', verifyToken, async (req, res) => {
   try {
-    // ✅ CORREÇÃO parseInt
-    const profileUserId = parseInt(req.params.id, 10);
-    if (isNaN(profileUserId)) return res.status(400).json({ error: "ID inválido." });
-
+    const { username } = req.params;
     const myUserId = req.user ? req.user.id : 0;
+
+    // Primeiro, precisamos do ID do usuário a partir do username
+    const userQuery = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+    const profileUserId = userQuery.rows[0].id;
+    
+    // A query SQL agora é a mesma de antes, mas usando 'profileUserId'
     const feedQuery = await pool.query(
       `SELECT 
-         posts.id, 
-         posts.content, 
-         posts.image_url, 
-         posts.created_at, 
-         users.name AS author_name, 
-         users.avatar_url AS author_avatar,
-         users.course AS author_course, -- <-- A SUA MUDANÇA ESTÁ AQUI
-         
-         (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
-         EXISTS (
-           SELECT 1 FROM post_likes 
-           WHERE post_id = posts.id AND user_id = $1
-         ) AS liked_by_me,
-         (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
+          posts.id, 
+          posts.content, 
+          posts.image_url, 
+          posts.created_at, 
+          users.name AS author_name, 
+          users.avatar_url AS author_avatar,
+          users.course AS author_course,
+          users.username AS author_username, -- <-- ADICIONADO AQUI
+          
+          (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
+          EXISTS (
+            SELECT 1 FROM post_likes 
+            WHERE post_id = posts.id AND user_id = $1
+          ) AS liked_by_me,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
 
-       FROM posts
-       JOIN users ON posts.user_id = users.id
-       WHERE posts.user_id = $2
-       ORDER BY posts.created_at DESC`,
+        FROM posts
+        JOIN users ON posts.user_id = users.id
+        WHERE posts.user_id = $2 -- Usando o ID que encontramos
+        ORDER BY posts.created_at DESC`,
       [myUserId, profileUserId]
     );
     res.status(200).json(feedQuery.rows);
@@ -256,14 +302,13 @@ app.get('/posts/user/:id', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 8: DELETAR UM POST ---
-// (Vou adicionar o 'parseInt' que corrigimos antes)
+// --- Rota 8: DELETAR UM POST (Sem mudança na lógica) ---
 app.delete('/posts/:id', verifyToken, async (req, res) => {
+  // ... (código original sem mudança)
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
     }
-    // ✅ CORREÇÃO parseInt
     const postId = parseInt(req.params.id, 10);
     if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
     
@@ -283,13 +328,12 @@ app.delete('/posts/:id', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 9: CURTIR/DESCURTIR ---
-// (Vou adicionar o 'parseInt' e o gatilho de notificação)
+// --- Rota 9: CURTIR/DESCURTIR (Sem mudança na lógica) ---
 app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
+  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
-  // ✅ CORREÇÃO parseInt
   const postId = parseInt(req.params.id, 10);
   if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
   
@@ -311,7 +355,7 @@ app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
         [userId, postId]
       );
       
-      // Gatilho de Notificação (como tínhamos antes)
+      // Gatilho de Notificação (like)
       try {
         await pool.query(
           `INSERT INTO notifications (recipient_id, sender_id, post_id, type)
@@ -336,25 +380,25 @@ app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 10: LER todos os comentários de um post ---
-// (Vou adicionar o 'parseInt')
+// --- Rota 10: LER comentários (Sem mudança na lógica) ---
 app.get('/posts/:id/comments', verifyToken, async (req, res) => {
+  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
   try {
-    // ✅ CORREÇÃO parseInt
     const postId = parseInt(req.params.id, 10);
     if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
 
     const commentsQuery = await pool.query(
       `SELECT
-         comments.id, comments.content, comments.created_at,
-         users.name AS author_name, users.avatar_url AS author_avatar
-       FROM comments
-       JOIN users ON comments.user_id = users.id
-       WHERE comments.post_id = $1
-       ORDER BY comments.created_at ASC`,
+          comments.id, comments.content, comments.created_at,
+          users.name AS author_name, users.avatar_url AS author_avatar,
+          users.username AS author_username -- <-- ADICIONADO AQUI
+        FROM comments
+        JOIN users ON comments.user_id = users.id
+        WHERE comments.post_id = $1
+        ORDER BY comments.created_at ASC`,
       [postId]
     );
     res.status(200).json(commentsQuery.rows);
@@ -365,19 +409,19 @@ app.get('/posts/:id/comments', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 11: CRIAR um novo comentário em um post ---
-// (Vou adicionar o 'parseInt' e o gatilho de notificação)
+// --- Rota 11: CRIAR comentário (Sem mudança na lógica) ---
 app.post('/posts/:id/comments', verifyToken, async (req, res) => {
+  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
   try {
-    // ✅ CORREÇÃO parseInt
     const postId = parseInt(req.params.id, 10);
     if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
     
     const { content } = req.body;
-    const { id: userId, name: authorName, avatar_url: authorAvatar } = req.user;
+    // Pegando 'username' do req.user
+    const { id: userId, name: authorName, avatar_url: authorAvatar, username: authorUsername } = req.user;
 
     if (!content) {
       return res.status(400).json({ error: 'O comentário não pode estar vazio.' });
@@ -389,7 +433,7 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
       [userId, postId, content]
     );
 
-    // Gatilho de Notificação (como tínhamos antes)
+    // Gatilho de Notificação (comment)
     try {
       await pool.query(
         `INSERT INTO notifications (recipient_id, sender_id, post_id, type)
@@ -402,12 +446,14 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
       console.error("Erro ao criar notificação de comment:", err.message);
     }
     
+    // Adicionando 'author_username' à resposta
     const commentWithAuthor = {
       id: newComment.rows[0].id,
       content: newComment.rows[0].content,
       created_at: newComment.rows[0].created_at,
       author_name: authorName,
-      author_avatar: authorAvatar
+      author_avatar: authorAvatar,
+      author_username: authorUsername // <-- ADICIONADO AQUI
     };
     res.status(201).json(commentWithAuthor);
   } catch (err) {
@@ -417,8 +463,9 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 12: BUSCAR Notificações (Adicionada de volta) ---
+// --- Rota 12: BUSCAR Notificações (Sem mudança na lógica) ---
 app.get('/notifications', verifyToken, async (req, res) => {
+  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
@@ -426,12 +473,13 @@ app.get('/notifications', verifyToken, async (req, res) => {
     const { id: myUserId } = req.user;
     const notificationsQuery = await pool.query(
       `SELECT
-         n.id, n.type, n.post_id, n.read, n.created_at,
-         u.name AS sender_name, u.avatar_url AS sender_avatar
-       FROM notifications AS n
-       JOIN users AS u ON n.sender_id = u.id
-       WHERE n.recipient_id = $1
-       ORDER BY n.created_at DESC`,
+          n.id, n.type, n.post_id, n.read, n.created_at,
+          u.name AS sender_name, u.avatar_url AS sender_avatar,
+          u.username AS sender_username -- <-- ADICIONADO AQUI
+        FROM notifications AS n
+        JOIN users AS u ON n.sender_id = u.id
+        WHERE n.recipient_id = $1
+        ORDER BY n.created_at DESC`,
       [myUserId]
     );
     res.status(200).json(notificationsQuery.rows);
@@ -441,6 +489,274 @@ app.get('/notifications', verifyToken, async (req, res) => {
   }
 });
 
+
+// ==========================================================
+// --- NOVAS ROTAS - SISTEMA DE SEGUIDORES ---
+// ==========================================================
+
+// --- NOVO (Rota 13): FEED "SEGUINDO" ---
+// Retorna posts apenas de pessoas que o usuário logado segue.
+app.get('/feed/following', verifyToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+  
+  const myUserId = req.user.id;
+  
+  try {
+    // Esta query é parecida com a Rota 6, mas faz um JOIN com a tabela 'follows'
+    const feedQuery = await pool.query(
+      `SELECT 
+          posts.id, 
+          posts.content, 
+          posts.image_url, 
+          posts.created_at, 
+          users.name AS author_name, 
+          users.avatar_url AS author_avatar,
+          users.course AS author_course,
+          users.username AS author_username,
+          
+          (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
+          EXISTS (
+            SELECT 1 FROM post_likes 
+            WHERE post_id = posts.id AND user_id = $1
+          ) AS liked_by_me,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
+          
+        FROM posts
+        JOIN users ON posts.user_id = users.id
+        -- A MÁGICA ESTÁ AQUI:
+        JOIN follows ON posts.user_id = follows.following_id
+        WHERE follows.follower_id = $1 -- Onde EU sou o seguidor
+        ORDER BY posts.created_at DESC
+        LIMIT 20`,
+      [myUserId]
+    );
+    res.status(200).json(feedQuery.rows);
+  } catch (err) {
+    console.error("Erro ao buscar feed 'seguindo':", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+// --- NOVO (Rota 14): VER PERFIL DE UM USUÁRIO ---
+// Retorna os dados públicos de um usuário, contagem de seguidores,
+// e se o usuário logado segue esta pessoa.
+app.get('/profile/:username', verifyToken, async (req, res) => {
+  const { username } = req.params;
+  // ID do usuário logado (pode ser 0 se não estiver logado)
+  const myUserId = req.user ? req.user.id : 0; 
+  
+  try {
+    // Usamos sub-queries para contar seguidores/seguindo e checar se 'eu' sigo
+    const profileQuery = await pool.query(
+      `SELECT
+          id, name, username, course, bio, avatar_url,
+          (SELECT COUNT(*) FROM follows WHERE following_id = users.id) AS followers_count,
+          (SELECT COUNT(*) FROM follows WHERE follower_id = users.id) AS following_count,
+          EXISTS (
+              SELECT 1 FROM follows
+              WHERE follower_id = $1 AND following_id = users.id
+          ) AS is_following_by_me
+        FROM users
+        WHERE username = $2`,
+      [myUserId, username]
+    );
+
+    if (profileQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+    
+    res.status(200).json(profileQuery.rows[0]);
+  } catch (err) {
+    console.error("Erro ao buscar perfil:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+
+// --- NOVO (Rota 15): SEGUIR UM USUÁRIO ---
+app.post('/users/:username/follow', verifyToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+  
+  const { username: userToFollow } = req.params;
+  const { id: myUserId } = req.user;
+  
+  try {
+    // 1. Encontrar o ID do usuário a ser seguido
+    const userQuery = await pool.query("SELECT id FROM users WHERE username = $1", [userToFollow]);
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Usuário a seguir não encontrado." });
+    }
+    const followingId = userQuery.rows[0].id;
+    
+    if (followingId === myUserId) {
+      return res.status(400).json({ error: "Você não pode seguir a si mesmo." });
+    }
+
+    // 2. Inserir a relação na tabela 'follows'
+    await pool.query(
+      "INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)",
+      [myUserId, followingId]
+    );
+    
+    // 3. (Opcional) Criar notificação de 'follow'
+    try {
+        await pool.query(
+          `INSERT INTO notifications (recipient_id, sender_id, type)
+           VALUES ($1, $2, 'follow')`,
+          [followingId, myUserId] 
+        );
+      } catch (err) {
+        console.error("Erro ao criar notificação de follow:", err.message);
+      }
+
+    res.status(200).json({ following: true });
+    
+  } catch (err) {
+    if (err.code === '23505') { // Já segue
+      return res.status(409).json({ error: 'Você já segue este usuário.' });
+    }
+    console.error("Erro ao seguir usuário:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+// --- NOVO (Rota 16): DEIXAR DE SEGUIR UM USUÁRIO ---
+app.delete('/users/:username/unfollow', verifyToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+  
+  const { username: userToUnfollow } = req.params;
+  const { id: myUserId } = req.user;
+  
+  try {
+    // 1. Encontrar o ID do usuário
+    const userQuery = await pool.query("SELECT id FROM users WHERE username = $1", [userToUnfollow]);
+    if (userQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+    const followingId = userQuery.rows[0].id;
+
+    // 2. Deletar a relação
+    const deleteQuery = await pool.query(
+      "DELETE FROM follows WHERE follower_id = $1 AND following_id = $2",
+      [myUserId, followingId]
+    );
+    
+    if (deleteQuery.rowCount === 0) {
+      return res.status(400).json({ error: "Você não seguia este usuário." });
+    }
+
+    res.status(200).json({ following: false });
+    
+  } catch (err) {
+    console.error("Erro ao deixar de seguir:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+
+// --- NOVO (Rota 17): BUSCA DE USUÁRIOS ---
+app.get('/search/users', verifyToken, async (req, res) => {
+  const { q } = req.query; // Pega o termo de busca (ex: /search/users?q=andrey)
+  const myUserId = req.user ? req.user.id : 0;
+  
+  if (!q) {
+    return res.status(200).json([]); // Retorna array vazio se a busca for vazia
+  }
+  
+  try {
+    const searchQuery = await pool.query(
+      `SELECT
+          id, name, username, avatar_url,
+          EXISTS (
+              SELECT 1 FROM follows
+              WHERE follower_id = $1 AND following_id = users.id
+          ) AS is_following_by_me
+        FROM users
+        WHERE (username ILIKE $2 OR name ILIKE $2) -- ILIKE é case-insensitive
+        AND id != $1 -- Não me incluir nos resultados
+        LIMIT 10`,
+      [myUserId, `%${q}%`] // %q% busca por qualquer parte da string
+    );
+    
+    res.status(200).json(searchQuery.rows);
+    
+  } catch (err) {
+    console.error("Erro ao buscar usuários:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+
+// --- NOVO (Rota 18): BUSCAR PERFIL POR ID (para o "Meu Perfil") ---
+app.get('/profile/id/:id', verifyToken, async (req, res) => {
+  const profileId = parseInt(req.params.id, 10);
+  if (isNaN(profileId)) return res.status(400).json({ error: "ID inválido." });
+
+  const myUserId = req.user ? req.user.id : 0; 
+  
+  try {
+    const profileQuery = await pool.query(
+      `SELECT
+          id, name, username, course, bio, avatar_url,
+          (SELECT COUNT(*) FROM follows WHERE following_id = users.id) AS followers_count,
+          (SELECT COUNT(*) FROM follows WHERE follower_id = users.id) AS following_count,
+          EXISTS (
+              SELECT 1 FROM follows
+              WHERE follower_id = $1 AND following_id = users.id
+          ) AS is_following_by_me
+        FROM users
+        WHERE id = $2`,
+      [myUserId, profileId]
+    );
+
+    if (profileQuery.rows.length === 0) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+    res.status(200).json(profileQuery.rows[0]);
+  } catch (err) {
+    console.error("Erro ao buscar perfil por ID:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+// --- NOVO (Rota 19): BUSCAR POSTS POR ID (para o "Meu Perfil") ---
+app.get('/posts/user/id/:id', verifyToken, async (req, res) => {
+  try {
+    const profileUserId = parseInt(req.params.id, 10);
+    if (isNaN(profileUserId)) return res.status(400).json({ error: "ID inválido." });
+
+    const myUserId = req.user ? req.user.id : 0;
+    
+    // A query é a mesma da Rota 7, só muda como pegamos o ID
+    const feedQuery = await pool.query(
+      `SELECT 
+          posts.id, posts.content, posts.image_url, posts.created_at, 
+          users.name AS author_name, users.avatar_url AS author_avatar,
+          users.course AS author_course, users.username AS author_username,
+          (SELECT COUNT(*) FROM post_likes WHERE post_id = posts.id) AS total_likes,
+          EXISTS (
+            SELECT 1 FROM post_likes 
+            WHERE post_id = posts.id AND user_id = $1
+          ) AS liked_by_me,
+          (SELECT COUNT(*) FROM comments WHERE post_id = posts.id) AS total_comments
+        FROM posts
+        JOIN users ON posts.user_id = users.id
+        WHERE posts.user_id = $2
+        ORDER BY posts.created_at DESC`,
+      [myUserId, profileUserId]
+    );
+    res.status(200).json(feedQuery.rows);
+  } catch (err) {
+    console.error("Erro ao buscar posts do usuário por ID:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
 
 const PORT = 3000;
 

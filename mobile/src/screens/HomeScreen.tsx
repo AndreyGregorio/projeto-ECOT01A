@@ -3,7 +3,7 @@ import {
   StyleSheet, 
   View, 
   Text, 
-  SafeAreaView, // (Mantido como você pediu)
+  SafeAreaView,
   FlatList,
   ActivityIndicator,
   Image,
@@ -12,11 +12,10 @@ import {
   StatusBar,
   TouchableOpacity 
 } from 'react-native';
-import { useAuth } from '@/contexts/AuthContext';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useAuth } from '@/contexts/AuthContext'; // <-- Importado aqui
+import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons'; 
 
-// --- 1. ATUALIZAR A INTERFACE POST ---
 export interface Post {
   id: number;
   content: string | null;
@@ -24,17 +23,33 @@ export interface Post {
   created_at: string;
   author_name: string;
   author_avatar: string | null;
-  author_course: string | null; // <-- MUDANÇA 1: Adicionado
+  author_course: string | null; 
+  author_username: string; 
   total_likes: number;  
   liked_by_me: boolean;
   total_comments: number; 
 }
 
-// --- 2. ATUALIZAR O PostItem ---
 export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => void }> = ({ post, onToggleLike }) => {
   
-  // (Mantida a URL de imagem "quebrada", como você pediu)
-  const authorAvatarSource = post.author_avatar ? { uri: post.author_avatar } : null; 
+  const { API_URL } = useAuth();
+
+  const getSafeImageUri = (path: string | null | undefined) => {
+    if (!path) {
+      return null;
+    }
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return { uri: path };
+    }
+    if (path.startsWith('/')) {
+      return { uri: `${API_URL}${path}` };
+    }
+    return null; 
+  };
+
+  const authorAvatarSource = getSafeImageUri(post.author_avatar);
+  const postImageSource = getSafeImageUri(post.image_url);
+
   const likeIcon = post.liked_by_me ? 'heart' : 'heart-outline';
   const likeColor = post.liked_by_me ? '#E23C3C' : '#333'; 
 
@@ -43,31 +58,31 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
   const goToComments = () => {
     navigation.navigate('Comments', { postId: post.id });
   };
+  
+  const goToProfile = () => {
+    navigation.navigate('Profile', { username: post.author_username });
+  };
 
   return (
     <View style={styles.postContainer}>
-      {/* --- MUDANÇA 2: Header do Post atualizado --- */}
-      <View style={styles.postHeader}>
+      <TouchableOpacity onPress={goToProfile} style={styles.postHeader}>
         {authorAvatarSource ? (
           <Image source={authorAvatarSource} style={styles.postAvatar} />
         ) : (
-          <View style={styles.postAvatar} />
+          <View style={styles.postAvatar} /> // Fallback para avatar
         )}
-        {/* Adicionado um View para agrupar nome e curso */}
         <View style={styles.postAutorContainer}>
           <Text style={styles.postAutor}>{post.author_name}</Text>
-          {/* Mostra o curso SÓ SE ele existir */}
-          {post.author_course && (
-            <Text style={styles.postCurso}>{post.author_course}</Text>
-          )}
+          <Text style={styles.postUsername}>@{post.author_username}</Text> 
         </View>
-      </View>
+      </TouchableOpacity>
       
-      {/* Conteúdo (Mantida a URL de imagem "quebrada") */}
       {post.content && ( <Text style={styles.postConteudo}>{post.content}</Text> )}
-      {post.image_url && ( <Image source={{ uri: post.image_url }} style={styles.postImage} /> )}
+      
+      {}
+      {postImageSource && ( <Image source={postImageSource} style={styles.postImage} /> )}
 
-      {/* --- SEÇÃO DE INTERAÇÃO (Sem mudança) --- */}
+      {}
       <View style={styles.interactionBar}>
         <TouchableOpacity 
           style={styles.interactionButton}
@@ -93,19 +108,29 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
   );
 };
 
-// --- 3. HomeScreen (Componente Principal) ---
-// (Sem mudança na lógica)
+type FeedScreenRouteParams = {
+  feedType?: 'for-you' | 'following';
+};
+type FeedScreenRouteProp = RouteProp<{ params: FeedScreenRouteParams }, 'params'>;
+
+
 export default function HomeScreen() {
   const { API_URL, token, user } = useAuth(); 
   
+  const route = useRoute<FeedScreenRouteProp>();
+  const feedType = route.params?.feedType || 'for-you'; 
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchPosts = async () => {
     if (!user) return; 
+
+    const endpoint = feedType === 'following' ? '/feed/following' : '/posts';
+    
     try {
-      const response = await fetch(`${API_URL}/posts`, { 
+      const response = await fetch(`${API_URL}${endpoint}`, { 
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (!response.ok) { throw new Error('Falha ao buscar posts'); }
@@ -120,8 +145,8 @@ export default function HomeScreen() {
     }
   };
 
-  useFocusEffect(useCallback(() => { setLoading(true); fetchPosts(); }, [user]));
-  const onRefresh = useCallback(() => { setRefreshing(true); fetchPosts(); }, [user]);
+  useFocusEffect(useCallback(() => { setLoading(true); fetchPosts(); }, [user, feedType]));
+  const onRefresh = useCallback(() => { setRefreshing(true); fetchPosts(); }, [user, feedType]);
 
   const handleToggleLike = async (postId: number) => {
     setPosts(currentPosts => 
@@ -149,12 +174,28 @@ export default function HomeScreen() {
   if (loading && !refreshing) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" />
-        </View>
-      </SafeAreaView>
+         <View style={styles.loadingContainer}>
+           <ActivityIndicator size="large" />
+         </View>
+       </SafeAreaView>
     );
   }
+
+  const EmptyState = () => (
+    <View style={styles.emptyContainer}>
+      {feedType === 'following' ? (
+        <>
+          <Text style={styles.emptyText}>Feed "Seguindo" vazio</Text>
+          <Text style={styles.emptySubText}>Comece a seguir pessoas para ver os posts delas aqui.</Text>
+        </>
+      ) : (
+        <>
+          <Text style={styles.emptyText}>Nenhum post ainda.</Text>
+          <Text style={styles.emptySubText}>Seja o primeiro a postar!</Text>
+        </>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -172,42 +213,38 @@ export default function HomeScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Nenhum post ainda.</Text>
-            <Text style={styles.emptySubText}>Seja o primeiro a postar!</Text>
-          </View>
-        }
+        ListEmptyComponent={<EmptyState />} 
       />
     </SafeAreaView>
   );
 }
 
-// --- 4. ESTILOS (Adicionados novos estilos) ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F0F2F5', },
   feed: { flex: 1, },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F0F2F5', },
-  emptyContainer: { flex: 1, paddingTop: 150, alignItems: 'center', },
-  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', },
-  emptySubText: { fontSize: 14, color: '#828282', marginTop: 8, },
+  emptyContainer: { flex: 1, paddingTop: 150, alignItems: 'center', paddingHorizontal: 20, },
+  emptyText: { fontSize: 18, fontWeight: 'bold', color: '#333', textAlign: 'center' },
+  emptySubText: { fontSize: 14, color: '#828282', marginTop: 8, textAlign: 'center' },
   postContainer: { backgroundColor: '#FFFFFF', padding: 16, marginVertical: 8, marginHorizontal: 16, borderRadius: 8, elevation: 1, },
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, },
   postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE', marginRight: 12, },
   
-  // <-- MUDANÇA 3: Novos estilos adicionados -->
   postAutorContainer: {
-    flexDirection: 'column', // Empilha o nome e o curso
+    flexDirection: 'column', 
   },
   postAutor: { 
     fontWeight: 'bold', 
     fontSize: 16, 
   },
-  postCurso: {
-    fontSize: 12,
-    color: '#666', // Um cinza para diferenciar
+  postUsername: {
+    fontSize: 13,
+    color: '#666', 
   },
-  // --- Fim dos novos estilos ---
+  postCurso: { 
+    fontSize: 12,
+    color: '#666', 
+  },
 
   postConteudo: { fontSize: 15, lineHeight: 22, marginBottom: 12, },
   postImage: { width: '100%', aspectRatio: 16/9, borderRadius: 8, backgroundColor: '#EEE', marginTop: 8, },

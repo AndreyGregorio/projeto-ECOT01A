@@ -1,5 +1,3 @@
-// 📁 src/screens/EditProfileScreen.tsx (ARQUIVO NOVO)
-
 import React, { useState } from 'react';
 import {
   StyleSheet,
@@ -11,16 +9,16 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  ScrollView // Usamos ScrollView, não FlatList
+  ScrollView 
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext'; 
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
 
-// A interface do formulário
 interface ProfileFormData {
   name: string;
+  username: string;
   course: string; 
   bio: string;    
 }
@@ -29,34 +27,40 @@ export default function EditProfileScreen() {
   const { user, updateUserContext, token, API_URL } = useAuth();
   const navigation = useNavigation();
 
-  // Estados SÓ para a edição
   const [loading, setLoading] = useState(false); 
   const [isUploading, setIsUploading] = useState(false);
+  
+  // --- 2. ATUALIZAR O ESTADO INICIAL ---
   const [formData, setFormData] = useState<ProfileFormData>({
     name: user?.name || '',
+    username: user?.username || '', 
     course: user?.course || '', 
     bio: user?.bio || '',       
   });
 
-  // --- Funções de Edição (As mesmas que você já tinha) ---
+  // Funções de Edição 
 
   const handleSave = async () => {
     if (!user) return; 
     setLoading(true);
     try {
+      // O 'formData' agora inclui o 'username', então a API vai recebê-lo
       const response = await fetch(`${API_URL}/profile/${user.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(formData),
       });
       const updatedUser = await response.json();
-      if (!response.ok) { throw new Error(updatedUser.error); }
+      if (!response.ok) { 
+        throw new Error(updatedUser.error); 
+      }
       updateUserContext(updatedUser);
       setLoading(false);
       Alert.alert("Sucesso", "Perfil atualizado!");
-      navigation.goBack(); // Volta para a tela anterior (Configurações)
+      navigation.goBack(); 
     } catch (error: any) {
-      setLoading(false); Alert.alert("Erro", error.message);
+      setLoading(false); 
+      Alert.alert("Erro", error.message); 
     }
   };
 
@@ -67,14 +71,12 @@ export default function EditProfileScreen() {
        { text: "Cancelar", style: "cancel" }]
     );
   };
-
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permissão necessária!'); return; }
     let result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [1, 1], quality: 0.7, });
     if (!result.canceled) { uploadImage(result.assets[0].uri); }
   };
-
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') { Alert.alert('Permissão necessária!'); return; }
@@ -82,6 +84,7 @@ export default function EditProfileScreen() {
     if (!result.canceled) { uploadImage(result.assets[0].uri); }
   };
 
+  //UPLOAD DE FOTO
   const uploadImage = async (uri: string) => {
     if (!user) return; 
     setIsUploading(true);
@@ -90,25 +93,25 @@ export default function EditProfileScreen() {
     const match = /\.(\w+)$/.exec(filename!);
     const type = match ? `image/${match[1]}` : `image`;
     formData.append('avatar', { uri: uri, name: filename, type } as any);
-    formData.append('userId', user.id); 
+
     try {
       const response = await fetch(`${API_URL}/profile/upload-avatar`, { method: 'POST', body: formData, headers: { 'Authorization': `Bearer ${token}` }, });
       const updatedUser = await response.json();
       if (!response.ok) { throw new Error(updatedUser.error); }
-      updateUserContext(updatedUser); // Atualiza o avatar em tempo real
+      updateUserContext(updatedUser); 
       Alert.alert('Sucesso', 'Foto do perfil atualizada!');
     } catch (error: any) { Alert.alert('Erro', error.message);
     } finally { setIsUploading(false); }
   };
 
   if (!user) {
-    // Fallback, embora o usuário deva estar logado para chegar aqui
     return <ActivityIndicator style={{ flex: 1 }} />;
   }
   
-  const avatarSource = user.avatar_url ? { uri: user.avatar_url } : null;
+  const avatarSource = user.avatar_url 
+    ? { uri: `${API_URL}${user.avatar_url}` } 
+    : null;
 
-  // Esta é a tela que era 'renderProfileEdit'
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.editFormContainer}>
@@ -125,6 +128,7 @@ export default function EditProfileScreen() {
 
         {/* Avatar e botão da câmera */}
         <View style={styles.profileHeader}>
+          {}
           {avatarSource ? (
             <Image source={avatarSource} style={styles.avatar} />
           ) : (
@@ -143,7 +147,7 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Formulário (agora 100% seguro) */}
+        {}
         <View style={styles.formContainer}>
           <Text style={styles.label}>Nome</Text>
           <TextInput 
@@ -151,6 +155,20 @@ export default function EditProfileScreen() {
             value={formData.name} 
             onChangeText={(text) => setFormData(p => ({ ...p, name: text }))} 
           />
+          
+          {}
+          <Text style={styles.label}>Username</Text>
+          <TextInput 
+            style={styles.input} 
+            value={formData.username} 
+            onChangeText={(text) => setFormData(p => ({ 
+              ...p, 
+              username: text.replace(/@/g, '').toLowerCase() 
+            }))} 
+            autoCapitalize="none"
+            placeholder="@username"
+          />
+          
           <Text style={styles.label}>Curso</Text>
           <TextInput 
             style={styles.input} 
@@ -170,7 +188,7 @@ export default function EditProfileScreen() {
   );
 }
 
-// Estilos (copiados do ProfileScreen, pode otimizar depois)
+
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   profileHeader: { position: 'relative', alignItems: 'center', marginBottom: 24, marginTop: 20 },

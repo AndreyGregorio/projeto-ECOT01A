@@ -1,40 +1,44 @@
 import React from 'react';
-// 1. IMPORTE O TIPO CORRETO
 import {
   createMaterialTopTabNavigator,
   MaterialTopTabBarProps, 
 } from '@react-navigation/material-top-tabs';
+import { useNavigation } from '@react-navigation/native';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants'; 
+import FeedScreen from '@/screens/HomeScreen'; 
 
-import  FeedScreen  from '@/screens/HomeScreen'; // Esta é a sua tela "Para você"
-
-// <-- MUDANÇA 1: Renomear o placeholder (e o texto)
 const CalendarScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Tela de Calendário</Text>
+    <Text>Tela de Calendário (WIP)</Text>
   </View>
 );
 
 const TopTab = createMaterialTopTabNavigator();
 
-// O 'CustomTopTabBar' não precisa de nenhuma mudança,
-// ele já lê as rotas dinamicamente
 const CustomTopTabBar = (props: MaterialTopTabBarProps) => { 
   const { state, navigation } = props;
+  const mainNavigation = useNavigation<any>(); 
 
   return (
     <View style={styles.headerContainer}>
       <View style={styles.headerTabs}>
         {state.routes.map((route, index) => { 
           const isActive = state.index === index; 
-          return (
-            <TouchableOpacity
-              key={route.key}
-              onPress={() => navigation.navigate(route.name)}
-              style={styles.tabButton}
-            >
+          
+          // Lógica para decidir o que renderizar: Texto ou Ícone
+          let tabContent;
+          if (route.name === 'Calendario') {
+            tabContent = (
+              <Feather 
+                name="calendar" // O ícone
+                size={22} // Tamanho
+                color={isActive ? '#000000' : 'rgba(0, 0, 0, 0.4)'} // Cor
+              />
+            );
+          } else {
+            tabContent = (
               <Text
                 style={[
                   styles.headerTab,
@@ -43,16 +47,36 @@ const CustomTopTabBar = (props: MaterialTopTabBarProps) => {
               >
                 {route.name}
               </Text>
-              {isActive && <View style={styles.activeIndicator} />}
+            );
+          }
+
+          return (
+            <TouchableOpacity
+              key={route.key}
+              onPress={() => navigation.navigate(route.name)}
+              //padding diferente para o ícone
+              style={[
+                styles.tabButton, 
+                route.name === 'Calendario' && styles.tabButtonIcon
+              ]}
+            >
+              {tabContent}
+              
+              {/* Só mostra o indicador se for ativo E NÃO for o calendário */}
+              {isActive && route.name !== 'Calendario' && (
+                 <View style={styles.activeIndicator} />
+              )}
             </TouchableOpacity>
           );
         })}
       </View>
+      
+      {/* Ícones da direita (DM e Busca)*/}
       <View style={styles.headerIcons}>
         <TouchableOpacity>
           <Feather name="mail" size={24} color="black" />
         </TouchableOpacity>
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => mainNavigation.navigate('SearchScreen')}>
           <Feather name="search" size={24} color="black" />
         </TouchableOpacity>
       </View>
@@ -60,22 +84,34 @@ const CustomTopTabBar = (props: MaterialTopTabBarProps) => {
   );
 };
 
+//telas ao navegador
 export function HomeTopTabs() {
   return (
     <TopTab.Navigator
       tabBar={(props) => <CustomTopTabBar {...props} />}
       style={{ paddingTop: Constants.statusBarHeight }}
     >
-      {/* <-- MUDANÇA 2: Invertemos a ordem. "Para você" vem primeiro. */}
-      <TopTab.Screen name="Para você" component={FeedScreen} />
+      <TopTab.Screen 
+        name="Para você" 
+        component={FeedScreen}
+        initialParams={{ feedType: 'for-you' }} 
+      />
       
-      {/* <-- MUDANÇA 3: Renomeamos "Horários" para "Calendario" */}
-      <TopTab.Screen name="Calendario" component={CalendarScreen} />
+      <TopTab.Screen 
+        name="Seguindo" 
+        component={FeedScreen}
+        initialParams={{ feedType: 'following' }} 
+      />
+      
+      <TopTab.Screen 
+        name="Calendario" // O nome que o CustomTopTabBar vai ler
+        component={CalendarScreen} 
+      />
     </TopTab.Navigator>
   );
 }
 
-// ... (seus estilos permanecem os mesmos)
+// Ajuste de Estilo
 const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
@@ -87,15 +123,17 @@ const styles = StyleSheet.create({
   },
   headerTabs: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 24, // Espaçamento entre as abas
     alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    transform: [{ translateX: -32 }],
+    flex: 1, // Ocupa o espaço disponível
+    // Removemos o 'justifyContent: center' e o 'transform'
   },
   tabButton: {
     paddingBottom: 10,
     position: 'relative',
+  },
+  tabButtonIcon: {
+    paddingBottom: 10, // Mesmo padding, mas sem o indicador
   },
   headerTab: {
     fontWeight: '600',

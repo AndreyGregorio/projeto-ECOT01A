@@ -7,12 +7,12 @@ const API_URL = 'http://192.168.15.17:3000';
 
 // --- Tipos para o TSX ---
 
-interface User {
-  id: string;
+export interface User {
+  id: number; 
   name: string;
+  username: string; 
   email: string;
   avatar_url?: string | null; 
-  // <-- MUDANÇA: Adicionei os campos que faltavam para o perfil
   course?: string | null; 
   bio?: string | null;
 }
@@ -21,11 +21,11 @@ interface AuthContextData {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  // --- MUDANÇA 1: Assinatura do 'login' atualizada ---
+  login: (identifier: string, password: string) => Promise<void>; // <-- Era 'email'
+  register: (name: string, username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUserContext: (updatedUser: User) => void;
-  // <-- MUDANÇA: Expor a URL da API para que as telas a utilizem
   API_URL: string; 
 }
 
@@ -36,14 +36,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 1. Carregar token ao iniciar o app
   useEffect(() => {
     const loadToken = async () => {
       try {
         const storedToken = await AsyncStorage.getItem('token');
         if (storedToken) {
           setToken(storedToken);
-          // Agora o 'jwtDecode' entende os campos novos (se existirem no token)
           const decodedUser = jwtDecode<User>(storedToken); 
           setUser(decodedUser);
         }
@@ -56,13 +54,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     loadToken();
   }, []);
 
-  // 2. Função de Login (Seu código está correto e já espera { token, user })
-  const login = async (email: string, password: string) => {
+  // --- Função 'login' ---
+  const login = async (identifier: string, password: string) => { // <-- Era 'email'
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier, password }), // <-- Envia 'identifier'
       });
 
       const data = await response.json();
@@ -71,7 +69,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error(data.error || 'Erro ao logar');
       }
       
-      // Se o backend enviar { token, user }, isto funciona
       const { token, user } = data; 
 
       await AsyncStorage.setItem('token', token);
@@ -84,14 +81,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 3. Função de Cadastro (Correta)
-  const register = async (name: string, email: string, password: string) => {
-    // ... (seu código de registro aqui, sem mudanças) ...
+  //Função de Cadastro
+  const register = async (name: string, username: string, email: string, password: string) => {
     try {
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, username, email, password }),
       });
       
       const data = await response.json();
@@ -100,7 +96,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error(data.error || 'Erro ao cadastrar');
       }
       
-      await login(email, password);
+      // Se o cadastro deu certo, faz o login automaticamente
+      await login(email, password); // <-- 'email' é um 'identifier' válido
 
     } catch (error) {
       console.error('Erro no cadastro:', error);
@@ -108,9 +105,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 4. Função de Logout (Correta)
+  // Função de Logout 
   const logout = async () => {
-    // ... (seu código de logout aqui, sem mudanças) ...
     try {
       await AsyncStorage.removeItem('token');
       setToken(null);
@@ -120,7 +116,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 5. Função de Atualização (Correta)
+  // 5. Função de Atualização (Sem mudança)
   const updateUserContext = (updatedUser: User) => {
     setUser(updatedUser);
   };
@@ -131,11 +127,11 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         user, 
         token, 
         isLoading, 
-        login, 
+        login, // <-- A função 'login' atualizada
         register, 
         logout, 
         updateUserContext,
-        API_URL // <-- MUDANÇA: Fornece a URL da API
+        API_URL 
       }}
     >
       {children}
@@ -143,7 +139,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   );
 };
 
-// Hook customizado (Correto)
+// Hook customizado (Sem mudança)
 export const useAuth = () => {
   return useContext(AuthContext);
 };

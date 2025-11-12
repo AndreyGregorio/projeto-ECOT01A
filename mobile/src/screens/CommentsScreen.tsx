@@ -1,5 +1,3 @@
-// 📁 src/screens/CommentsScreen.tsx (ARQUIVO NOVO)
-
 import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
@@ -79,7 +77,7 @@ export default function CommentsScreen() {
     }
   };
 
-  // 2. Postar um novo comentário (CORRIGIDO)
+  // 2. Postar um novo comentário
   const handlePostComment = async () => {
     if (newComment.trim() === '') return; 
     
@@ -94,24 +92,16 @@ export default function CommentsScreen() {
         body: JSON.stringify({ content: newComment }),
       });
       
-      // --- A CORREÇÃO ESTÁ AQUI ---
-      // 1. Leia a resposta como 'any' primeiro
       const responseData = await response.json();
 
-      // 2. VERIFIQUE se a resposta foi boa
       if (!response.ok) {
-        // Se NÃO foi, 'responseData' é { error: '...' }
-        // Agora o TypeScript entende 'responseData.error'
         throw new Error(responseData.error || 'Falha ao postar comentário');
       }
 
-      // 3. Se FOI boa, agora 'responseData' é um 'Comment'
       const createdComment: Comment = responseData; 
-      // --- FIM DA CORREÇÃO ---
 
-      // Sucesso!
       setComments(prevComments => [...prevComments, createdComment]);
-      setNewComment(''); // Limpa a caixa de texto
+      setNewComment(''); 
       
     } catch (error: any) {
       Alert.alert('Erro', error.message);
@@ -120,18 +110,16 @@ export default function CommentsScreen() {
     }
   };
 
-  // Buscar comentários quando a tela carregar
   useEffect(() => {
     fetchComments();
   }, [postId]);
 
-  
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
-        keyboardVerticalOffset={100} // Ajuste fino
+        keyboardVerticalOffset={100} 
       >
         {/* Header */}
         <View style={styles.header}>
@@ -183,7 +171,7 @@ export default function CommentsScreen() {
   );
 }
 
-// --- Estilos para CommentsScreen.tsx ---
+// --- Estilos para CommentsScreen ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   container: { flex: 1 },

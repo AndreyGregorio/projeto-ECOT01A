@@ -4,20 +4,15 @@ import { View, Text } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 import { HomeTopTabs } from '@/navigation/HomeTopTabs';
-
-// --- Nossas Telas Reais ---
 import ProfileScreen from '@/screens/ProfileScreen'; 
-// <-- MUDANÇA 1: Importar a nova tela de criação
 import CreatePostScreen from '@/screens/CreatePostScreen'; 
 
-// --- Placeholders (o que sobrou) ---
 const GroupsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Grupos</Text>
   </View>
 );
 
-// <-- MUDANÇA 2: O placeholder 'CreateScreen' foi REMOVIDO daqui
 
 const NotificationsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -70,13 +65,12 @@ export function MainBottomTabs() {
         component={GroupsScreen} 
       />
       
-      {/* <-- MUDANÇA 3: Usando o componente real */}
+      {}
       <BottomTab.Screen 
         name="Create" 
-        component={CreatePostScreen} // Trocamos 'CreateScreen' por 'CreatePostScreen'
+        component={CreatePostScreen}
         options={{ 
-          title: 'Criar Publicação',
-          // A tela 'CreatePostScreen' já tem seu próprio header customizado
+          title: 'Criar Publicidade',
           headerShown: false 
         }}
       />
@@ -86,11 +80,28 @@ export function MainBottomTabs() {
         component={NotificationsScreen} 
         options={{ title: 'Notificações' }}
       />
-      {/* (Removi o {} extra que estava aqui) */}
+      {}
       <BottomTab.Screen 
         name="Profile" 
         component={ProfileScreen} 
         options={{ title: 'Meu Perfil' }}
+        // --- MUDANÇA AQUI ---
+        // Adiciona um "ouvinte" ao botão da aba
+        listeners={({ navigation }) => ({
+          tabPress: (e) => {
+            // Verifica se a aba 'Profile' já está focada
+            const isFocused = navigation.isFocused();
+
+            if (isFocused) {
+              // Se sim, previne a ação padrão (que é não fazer nada)
+              e.preventDefault();
+              
+              // E força a navegação para 'Profile' sem parâmetros,
+              // o que vai carregar o seu próprio perfil.
+              navigation.navigate('Profile', { username: undefined });
+            }
+          },
+        })}
       />
     </BottomTab.Navigator>
   );

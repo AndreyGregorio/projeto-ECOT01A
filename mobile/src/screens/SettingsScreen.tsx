@@ -1,5 +1,3 @@
-// 📁 src/screens/SettingsScreen.tsx (ATUALIZADO)
-
 import React from 'react';
 import {
   StyleSheet,
@@ -15,8 +13,6 @@ import { useNavigation } from '@react-navigation/native';
 
 export default function SettingsScreen() {
   const { logout } = useAuth();
-  
-  // CORREÇÃO: Tipar o 'navigation' com <any> para aceitar rotas
   const navigation = useNavigation<any>();
 
   const handleSair = () => {
@@ -40,7 +36,7 @@ export default function SettingsScreen() {
       {/* Lista de Opções */}
       <View style={styles.container}>
         
-        {/* MUDANÇA: Botão de "Editar Perfil" */}
+        {/*Botão de "Editar Perfil" */}
         <TouchableOpacity 
           style={styles.optionButton} 
           onPress={() => navigation.navigate('EditProfile')} // Navega para a nova tela
@@ -49,14 +45,14 @@ export default function SettingsScreen() {
           <Text style={styles.optionText}>Editar Perfil</Text>
         </TouchableOpacity>
 
-        {/* MUDANÇA: Botão de "Notificações" REMOVIDO */}
+        {}
 
         <TouchableOpacity style={styles.optionButton}>
           <Ionicons name="lock-closed-outline" size={24} color="#333" />
           <Text style={styles.optionText}>Privacidade</Text>
         </TouchableOpacity>
 
-        {/* Botão de Sair (sem mudança) */}
+        {/* Botão de Sair*/}
         <TouchableOpacity 
           style={[styles.optionButton, styles.logoutButton]} 
           onPress={handleSair}
@@ -69,7 +65,6 @@ export default function SettingsScreen() {
   );
 }
 
-// Estilos (sem mudança)
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#EEE' },

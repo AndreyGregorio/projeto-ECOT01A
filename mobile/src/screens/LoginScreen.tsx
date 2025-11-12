@@ -23,19 +23,19 @@ interface LoginScreenProps {
 const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const { login } = useAuth();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
-    if (!email || !password) {
+    if (!identifier || !password) {
       Alert.alert('Erro', 'Preencha todos os campos.');
       return;
     }
 
     setLoading(true);
     try {
-      await login(email, password);
+      await login(identifier, password);
     } catch (error: any) {
       const errorMessage = error.message || 'Erro de conexão. Tente novamente.';
       Alert.alert('Falha no Login', errorMessage);
@@ -52,24 +52,19 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        {/* Title */}
         <Text style={styles.title}>UNIFEED</Text>
-
-        {/* Subtitle */}
         <Text style={styles.subtitle}>Entre</Text>
 
-        {/* Email Input */}
+        {}
         <TextInput
           style={styles.input}
-          placeholder="email@dominio.com"
-          keyboardType="email-address"
+          placeholder="Email ou @username" 
           autoCapitalize="none"
-          value={email}
-          onChangeText={setEmail}
+          value={identifier} 
+          onChangeText={setIdentifier} 
           editable={!loading}
         />
 
-        {/* Password Input */}
         <TextInput
           style={styles.input}
           placeholder="Senha"
@@ -79,7 +74,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           editable={!loading}
         />
 
-        {/* Continue Button */}
         <TouchableOpacity
           style={styles.button}
           onPress={handleContinue}
@@ -90,12 +84,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
-        {/* Registrar */}
         <TouchableOpacity onPress={handleRegister} disabled={loading}>
-          <Text style={styles.registerText}>Registrar</Text>
+          <Text style={styles.registerText}>Não tem uma conta? Registrar</Text>
         </TouchableOpacity>
 
-        {/* Terms and Privacy */}
         <Text style={styles.termsText}>
           Ao clicar em continuar, você concorda com os nossos{' '}
           <Text style={styles.linkText}>Termos de Serviço</Text> e com a{' '}

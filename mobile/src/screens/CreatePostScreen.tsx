@@ -16,17 +16,15 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native'; // Para navegar de volta
+import { useNavigation } from '@react-navigation/native';
 
 export default function CreatePostScreen() {
   const { user, token, API_URL } = useAuth();
   const navigation = useNavigation();
 
-  const [content, setContent] = useState(''); // O texto do post
-  const [imageUri, setImageUri] = useState<string | null>(null); // A imagem selecionada
+  const [content, setContent] = useState(''); 
+  const [imageUri, setImageUri] = useState<string | null>(null); 
   const [loading, setLoading] = useState(false);
-
-  // --- Funções de Imagem (IGUAIS às do ProfileScreen) ---
 
   const handleAttachImage = () => {
     Alert.alert(
@@ -49,7 +47,7 @@ export default function CreatePostScreen() {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [16, 9], // Proporção mais comum para posts
+      aspect: [16, 9], 
       quality: 0.7,
     });
 
@@ -75,7 +73,7 @@ export default function CreatePostScreen() {
     }
   };
 
-  // --- Função Principal: Postar ---
+  // --- Função Postar ---
 
   const handlePost = async () => {
     if (!user) return;
@@ -89,7 +87,7 @@ export default function CreatePostScreen() {
 
     // 1. Adicionar o texto e o usuário
     formData.append('content', content);
-    formData.append('userId', user.id);
+    formData.append('userId', user.id.toString());
 
     // 2. Adicionar a imagem (se existir)
     if (imageUri) {
@@ -106,7 +104,6 @@ export default function CreatePostScreen() {
         body: formData,
         headers: {
           'Authorization': `Bearer ${token}`
-          // NÃO COLOQUE 'Content-Type': 'application/json'
         },
       });
 
@@ -115,12 +112,10 @@ export default function CreatePostScreen() {
         throw new Error(err.error || "Falha ao criar o post.");
       }
 
-      // 4. Sucesso!
       Alert.alert('Sucesso!', 'Seu post foi publicado.');
-      // Limpa a tela e volta para o Feed (ou para onde você quiser)
       setContent('');
       setImageUri(null);
-      navigation.goBack(); // Volta para a tela anterior (provavelmente o Feed)
+      navigation.goBack();
 
     } catch (error: any) {
       console.error("Erro no handlePost:", error);
@@ -185,7 +180,7 @@ export default function CreatePostScreen() {
           <TouchableOpacity style={styles.toolbarButton} onPress={handleAttachImage}>
             <Ionicons name="image-outline" size={24} color="#828282" />
           </TouchableOpacity>
-          {/* Você pode adicionar mais botões aqui (ex: @, #) */}
+          {}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -239,7 +234,7 @@ const styles = StyleSheet.create({
   textInput: {
     fontSize: 18,
     lineHeight: 24,
-    minHeight: 150, // Começa com um bom tamanho
+    minHeight: 150, 
     textAlignVertical: 'top',
   },
   imagePreviewContainer: {

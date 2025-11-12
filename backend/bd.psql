@@ -1,6 +1,7 @@
 CREATE TABLE users (
   id SERIAL PRIMARY KEY,
   name VARCHAR(255) NOT NULL,
+  username VARCHAR(50) UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   course VARCHAR(255),
@@ -42,4 +43,18 @@ CREATE TABLE comments (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     -- Se um post for apagado, os seus comentários são apagados
     FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);
+
+CREATE TABLE follows (
+    id SERIAL PRIMARY KEY,
+    follower_id INTEGER NOT NULL, -- Quem está seguindo
+    following_id INTEGER NOT NULL, -- Quem está sendo seguido
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- Chaves estrangeiras para garantir a integridade dos dados
+    FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE,
+
+    -- Impede que alguém siga a mesma pessoa duas vezes
+    UNIQUE (follower_id, following_id)
 );
