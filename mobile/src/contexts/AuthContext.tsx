@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
 // Seu IP da API
-const API_URL = 'http://200.235.87.169:3000'; 
+const API_URL = 'http://192.168.15.17:3000'; 
 
 // --- Tipos para o TSX ---
 
@@ -11,7 +11,10 @@ interface User {
   id: string;
   name: string;
   email: string;
-  avatar_url?: string | null; // <-- MUDANÇA: Adicionada a URL do avatar (opcional)
+  avatar_url?: string | null; 
+  // <-- MUDANÇA: Adicionei os campos que faltavam para o perfil
+  course?: string | null; 
+  bio?: string | null;
 }
 
 interface AuthContextData {
@@ -21,7 +24,9 @@ interface AuthContextData {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
-  updateUserContext: (updatedUser: User) => void; // <-- MUDANÇA: Função para atualizar o user
+  updateUserContext: (updatedUser: User) => void;
+  // <-- MUDANÇA: Expor a URL da API para que as telas a utilizem
+  API_URL: string; 
 }
 
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
@@ -38,7 +43,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         const storedToken = await AsyncStorage.getItem('token');
         if (storedToken) {
           setToken(storedToken);
-          // Agora o 'jwtDecode' entende o 'avatar_url' graças à interface User
+          // Agora o 'jwtDecode' entende os campos novos (se existirem no token)
           const decodedUser = jwtDecode<User>(storedToken); 
           setUser(decodedUser);
         }
@@ -51,7 +56,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     loadToken();
   }, []);
 
-  // 2. Função de Login
+  // 2. Função de Login (Seu código está correto e já espera { token, user })
   const login = async (email: string, password: string) => {
     try {
       const response = await fetch(`${API_URL}/login`, {
@@ -65,14 +70,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao logar');
       }
-
-      // <-- MUDANÇA: O backend agora retorna { token, user }
-      // Não precisamos mais decodificar, o backend já envia o objeto 'user'
+      
+      // Se o backend enviar { token, user }, isto funciona
       const { token, user } = data; 
 
       await AsyncStorage.setItem('token', token);
       setToken(token);
-      setUser(user); // <-- MUDANÇA: Seta o usuário vindo da resposta da API
+      setUser(user); 
 
     } catch (error) {
       console.error('Erro no login:', error);
@@ -80,8 +84,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 3. Função de Cadastro
+  // 3. Função de Cadastro (Correta)
   const register = async (name: string, email: string, password: string) => {
+    // ... (seu código de registro aqui, sem mudanças) ...
     try {
       const response = await fetch(`${API_URL}/register`, {
         method: 'POST',
@@ -95,7 +100,6 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         throw new Error(data.error || 'Erro ao cadastrar');
       }
       
-      // Tenta logar automaticamente (a função 'login' já foi corrigida)
       await login(email, password);
 
     } catch (error) {
@@ -104,8 +108,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // 4. Função de Logout
+  // 4. Função de Logout (Correta)
   const logout = async () => {
+    // ... (seu código de logout aqui, sem mudanças) ...
     try {
       await AsyncStorage.removeItem('token');
       setToken(null);
@@ -115,7 +120,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     }
   };
 
-  // <-- MUDANÇA: Função para atualizar o usuário de outros componentes
+  // 5. Função de Atualização (Correta)
   const updateUserContext = (updatedUser: User) => {
     setUser(updatedUser);
   };
@@ -129,7 +134,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         login, 
         register, 
         logout, 
-        updateUserContext // <-- MUDANÇA: Fornece a nova função
+        updateUserContext,
+        API_URL // <-- MUDANÇA: Fornece a URL da API
       }}
     >
       {children}
@@ -137,7 +143,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
   );
 };
 
-// Hook customizado
+// Hook customizado (Correto)
 export const useAuth = () => {
   return useContext(AuthContext);
 };

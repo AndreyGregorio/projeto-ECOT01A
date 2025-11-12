@@ -5,26 +5,23 @@ import { Feather } from '@expo/vector-icons';
 
 import { HomeTopTabs } from '@/navigation/HomeTopTabs';
 
-// ... (seus placeholders de tela)
+// --- Nossas Telas Reais ---
+import ProfileScreen from '@/screens/ProfileScreen'; 
+// <-- MUDANÇA 1: Importar a nova tela de criação
+import CreatePostScreen from '@/screens/CreatePostScreen'; 
+
+// --- Placeholders (o que sobrou) ---
 const GroupsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Grupos</Text>
   </View>
 );
-// ... (outros placeholders)
-const CreateScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Criar Post</Text>
-  </View>
-);
+
+// <-- MUDANÇA 2: O placeholder 'CreateScreen' foi REMOVIDO daqui
+
 const NotificationsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Notificações</Text>
-  </View>
-);
-const ProfileScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Perfil</Text>
   </View>
 );
 
@@ -34,7 +31,6 @@ export function MainBottomTabs() {
   return (
     <BottomTab.Navigator
       screenOptions={({ route }) => ({
-        // ... (outras screenOptions)
         headerShown: false,
         tabBarActiveTintColor: '#000000',
         tabBarInactiveTintColor: '#828282',
@@ -46,8 +42,6 @@ export function MainBottomTabs() {
         },
 
         tabBarIcon: ({ color, size, focused }) => {
-          // --- A CORREÇÃO ESTÁ AQUI ---
-          // Dê um ícone de fallback (ex: 'circle') como valor inicial.
           let iconName: React.ComponentProps<typeof Feather>['name'] = 'circle';
 
           if (route.name === 'HomeTabs') {
@@ -61,19 +55,43 @@ export function MainBottomTabs() {
           } else if (route.name === 'Profile') {
             iconName = 'user';
           }
-
-          // ... (sua lógica de imagem de perfil)
-
-          // Agora o TypeScript tem certeza que 'iconName' nunca será undefined.
+          
           return <Feather name={iconName} size={size} color={color} />;
         },
       })}
     >
-      <BottomTab.Screen name="HomeTabs" component={HomeTopTabs} />
-      <BottomTab.Screen name="Groups" component={GroupsScreen} />
-      <BottomTab.Screen name="Create" component={CreateScreen} />
-      <BottomTab.Screen name="Notifications" component={NotificationsScreen} />
-      <BottomTab.Screen name="Profile" component={ProfileScreen} />
+      <BottomTab.Screen 
+        name="HomeTabs" 
+        component={HomeTopTabs} 
+        options={{ title: 'Feed' }} 
+      />
+      <BottomTab.Screen 
+        name="Groups" 
+        component={GroupsScreen} 
+      />
+      
+      {/* <-- MUDANÇA 3: Usando o componente real */}
+      <BottomTab.Screen 
+        name="Create" 
+        component={CreatePostScreen} // Trocamos 'CreateScreen' por 'CreatePostScreen'
+        options={{ 
+          title: 'Criar Publicação',
+          // A tela 'CreatePostScreen' já tem seu próprio header customizado
+          headerShown: false 
+        }}
+      />
+      
+      <BottomTab.Screen 
+        name="Notifications" 
+        component={NotificationsScreen} 
+        options={{ title: 'Notificações' }}
+      />
+      {/* (Removi o {} extra que estava aqui) */}
+      <BottomTab.Screen 
+        name="Profile" 
+        component={ProfileScreen} 
+        options={{ title: 'Meu Perfil' }}
+      />
     </BottomTab.Navigator>
   );
 }
