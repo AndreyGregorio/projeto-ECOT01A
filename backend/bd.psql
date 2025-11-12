@@ -18,3 +18,28 @@ CREATE TABLE posts (
     
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE post_likes (
+    user_id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL,
+    
+    -- Chaves Estrangeiras
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    
+    -- A MÁGICA: Um usuário só pode curtir um post UMA VEZ
+    PRIMARY KEY (user_id, post_id)
+);
+
+CREATE TABLE comments (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL,
+    user_id INTEGER NOT NULL,
+    post_id INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Se um user for apagado, os seus comentários são apagados
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    -- Se um post for apagado, os seus comentários são apagados
+    FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
+);

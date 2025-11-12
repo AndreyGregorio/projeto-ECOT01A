@@ -3,19 +3,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { ActivityIndicator, View } from 'react-native';
 
-// 1. Hook de autenticação (sem mudança)
+// 1. Hook de autenticação 
 import { useAuth } from '@/contexts/AuthContext';
 
-// 2. Imports das telas de Auth (sem mudança)
+// 2. Imports das telas de Auth 
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 
 // 3. Imports das Telas do App (Logado)
 import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
 import SettingsScreen from '@/screens/SettingsScreen';
-
-// <-- MUDANÇA 1: Importar a nova tela de Edição
 import EditProfileScreen from '@/screens/EditProfileScreen';
+import CommentsScreen from '@/screens/CommentsScreen'; // <-- A importação já estava correta
 
 const Stack = createNativeStackNavigator();
 
@@ -33,7 +32,6 @@ function AuthStack() {
 function AppStack() {
   // Telas para quem ESTÁ logado
   return (
-    // É mais limpo definir o 'headerShown: false' aqui
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen
         // Contém todas as suas abas (Home, Perfil, etc.)
@@ -46,13 +44,21 @@ function AppStack() {
         component={SettingsScreen} 
       />
 
-      {/* <-- MUDANÇA 2: Adicionar a tela de Edição de Perfil */}
-      {/* O SettingsScreen vai navegar para esta tela */}
+      {/* <-- MUDANÇA 1: Removi os {} extras daqui --> */}
+
       <Stack.Screen 
         name="EditProfile" 
         component={EditProfileScreen} 
       />
 
+      {/* <-- MUDANÇA 2: Adicionada a tela de Comentários --> */}
+      {/* Agora, quando o PostItem chamar 'navigation.navigate('Comments')',
+          o app saberá para onde ir.
+      */}
+      <Stack.Screen 
+        name="Comments" 
+        component={CommentsScreen} 
+      />
     </Stack.Navigator>
   );
 }

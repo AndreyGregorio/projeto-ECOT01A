@@ -13,7 +13,7 @@ import {
   FlatList
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '@/contexts/AuthContext'; 
+import { useAuth } from '@/contexts/AuthContext';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Post, PostItem } from './HomeScreen'; // Importa o post
 
@@ -24,16 +24,16 @@ export default function ProfileScreen() {
   const [userPosts, setUserPosts] = useState<Post[]>([]);
   const [loadingPosts, setLoadingPosts] = useState(true);
 
-  // --- Funções (Agora só temos 2) ---
+  // --- Funções (Agora temos 3) ---
 
   const fetchUserPosts = async () => {
-    if (!user) return; 
+    if (!user) return;
     setLoadingPosts(true);
     try {
       const response = await fetch(`${API_URL}/posts/user/${user.id}`, { headers: { 'Authorization': `Bearer ${token}` } });
       if (!response.ok) throw new Error('Falha ao buscar posts');
       const data: Post[] = await response.json();
-      setUserPosts(data); 
+      setUserPosts(data);
     } catch (error: any) {
       Alert.alert('Erro', 'Não foi possível carregar seus posts.');
     } finally {
@@ -43,25 +43,61 @@ export default function ProfileScreen() {
   
   // Recarrega os posts quando o usuário foca a tela
   useFocusEffect(useCallback(() => {
-    if (user) { 
+    if (user) {
       fetchUserPosts();
     }
-  }, [user])); 
+  }, [user]));
 
   const handleDeletePost = (postId: number) => {
     Alert.alert("Apagar Post", "Você tem certeza?",
       [{ text: "Cancelar", style: "cancel" },
-       { text: "Apagar", style: "destructive", 
+       { text: "Apagar", style: "destructive",
          onPress: async () => {
-            try {
-              const response = await fetch(`${API_URL}/posts/${postId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
-              if (!response.ok && response.status !== 204) { throw new Error('Falha ao apagar.'); }
-              setUserPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
-              Alert.alert('Sucesso', 'Post apagado.');
-            } catch (error: any) { Alert.alert('Erro', error.message); }
-         } 
+           try {
+             const response = await fetch(`${API_URL}/posts/${postId}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+             if (!response.ok && response.status !== 204) { throw new Error('Falha ao apagar.'); }
+             setUserPosts(prevPosts => prevPosts.filter(p => p.id !== postId));
+             Alert.alert('Sucesso', 'Post apagado.');
+           } catch (error: any) { Alert.alert('Erro', error.message); }
+         }
        }]
     );
+  };
+
+  // <-- 1. FUNÇÃO ADICIONADA -->
+  // --- FUNÇÃO DE "TOGGLE LIKE" CORRIGIDA (NO PERFIL) ---
+  const handleToggleLike = async (postId: number) => {
+    
+    setUserPosts(currentPosts => 
+      currentPosts.map(p => {
+        if (p.id === postId) {
+          
+          // --- A CORREÇÃO ESTÁ AQUI ---
+          // 1. Força o 'total_likes' a virar um número
+          const currentLikes = Number(p.total_likes); 
+          
+          const newLikedByMe = !p.liked_by_me;
+          
+          // 2. Agora a matemática funciona
+          const newTotalLikes = newLikedByMe ? currentLikes + 1 : currentLikes - 1; 
+          
+          return { ...p, liked_by_me: newLikedByMe, total_likes: newTotalLikes };
+        }
+        return p;
+      })
+    );
+
+    // O resto da função (a chamada de API) continua igual
+    try {
+      await fetch(`${API_URL}/posts/${postId}/toggle-like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível registrar a curtida.');
+      // Refaz o fetch se a API falhar, para garantir consistência
+      fetchUserPosts(); 
+    }
   };
   // --- Fim das Funções ---
 
@@ -83,9 +119,9 @@ export default function ProfileScreen() {
       <View style={styles.headerContainer}>
         
         {/* Botão de Engrenagem (sem mudança) */}
-        <TouchableOpacity 
-          style={styles.settingsButton} 
-          onPress={() => navigation.navigate('Settings')} 
+        <TouchableOpacity
+          style={styles.settingsButton}
+          onPress={() => navigation.navigate('Settings')}
         >
           <Ionicons name="settings-outline" size={24} color="#333" />
         </TouchableOpacity>
@@ -115,7 +151,13 @@ export default function ProfileScreen() {
         ListHeaderComponent={renderProfileHeader}
         renderItem={({ item }) => (
           <View style={styles.postWrapper}>
-            <PostItem post={item} /> 
+            
+            {/* <-- 2. FUNÇÃO PASSADA PARA O POSTITEM --> */}
+            <PostItem 
+              post={item} 
+              onToggleLike={() => handleToggleLike(item.id)} 
+            />
+            
             <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeletePost(item.id)}>
               <Ionicons name="trash-outline" size={20} color="#DC3545" />
             </TouchableOpacity>
@@ -128,7 +170,7 @@ export default function ProfileScreen() {
   );
 }
 
-// Estilos (Simplificados)
+// Estilos (Sem mudanças)
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   headerContainer: { paddingTop: 10, width: '100%', alignItems: 'center' },
@@ -138,7 +180,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 4 },
   course: { fontSize: 16, color: '#555', marginBottom: 12 },
   bio: { fontSize: 14, color: '#666', textAlign: 'center', lineHeight: 20, marginBottom: 24, paddingHorizontal: 16 },
-  postsTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', width: '100%', marginTop: 24, marginBottom: 10, paddingHorizontal: 16 }, 
+  postsTitle: { fontSize: 20, fontWeight: 'bold', color: '#333', width: '100%', marginTop: 24, marginBottom: 10, paddingHorizontal: 16 },
   postWrapper: { position: 'relative', paddingHorizontal: 16 },
   deleteButton: { position: 'absolute', top: 16, right: 24, backgroundColor: '#FFFFFF', borderRadius: 15, padding: 4, elevation: 2 },
   emptyPostsText: { textAlign: 'center', marginTop: 30, fontSize: 16, color: '#828282' },
