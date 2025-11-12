@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
 // Seu IP da API
-const API_URL = 'https://projeto-ecot01a.onrender.com'; 
+const API_URL = '192.168.15.44:3000'; 
 
 export interface User {
   id: number; 
