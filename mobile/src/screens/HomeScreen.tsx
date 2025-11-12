@@ -99,6 +99,9 @@ export default function HomeScreen() {
   const { API_URL, token, user } = useAuth(); 
   
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 02bccf4 (MVP INTERMEDIÁRIO)
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -122,6 +125,7 @@ export default function HomeScreen() {
       setLoading(false);
       setRefreshing(false);
     }
+<<<<<<< HEAD
 =======
   // O 'logout' e 'handleSair' ainda podem existir aqui, 
   // mas o botão que chama 'handleSair' vai para outro lugar
@@ -131,6 +135,8 @@ export default function HomeScreen() {
     console.log("Usuário clicou em Sair");
     logout(); 
 >>>>>>> 5e4eb2c (bug no home resolvido)
+=======
+>>>>>>> 02bccf4 (MVP INTERMEDIÁRIO)
   };
 
   useFocusEffect(useCallback(() => { setLoading(true); fetchPosts(); }, [user]));
@@ -173,6 +179,9 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" />
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 02bccf4 (MVP INTERMEDIÁRIO)
       <FlatList
         data={posts}
         renderItem={({ item }) => (
@@ -194,6 +203,7 @@ export default function HomeScreen() {
           </View>
         }
       />
+<<<<<<< HEAD
 =======
       
       {/* O HEADER FOI REMOVIDO DAQUI. 
@@ -223,6 +233,8 @@ export default function HomeScreen() {
       */}
 
 >>>>>>> 5e4eb2c (bug no home resolvido)
+=======
+>>>>>>> 02bccf4 (MVP INTERMEDIÁRIO)
     </SafeAreaView>
   );
 }

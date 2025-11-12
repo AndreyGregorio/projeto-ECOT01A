@@ -11,6 +11,7 @@ import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 // 3. Imports das Telas do App (Logado)
 import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
 import SettingsScreen from '@/screens/SettingsScreen';
@@ -22,6 +23,13 @@ import CommentsScreen from '@/screens/CommentsScreen'; // <-- A importação já
 import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
 // Remova o import da antiga 'HomeScreen'
 >>>>>>> 5e4eb2c (bug no home resolvido)
+=======
+// 3. Imports das Telas do App (Logado)
+import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
+import SettingsScreen from '@/screens/SettingsScreen';
+import EditProfileScreen from '@/screens/EditProfileScreen';
+import CommentsScreen from '@/screens/CommentsScreen'; // <-- A importação já estava correta
+>>>>>>> 02bccf4 (MVP INTERMEDIÁRIO)
 
 const Stack = createNativeStackNavigator();
 
