@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   TouchableOpacity,
   Image,
   TextInput,
@@ -11,6 +10,16 @@ import {
   Alert,
   ScrollView 
 } from 'react-native';
+
+
+import {
+  SafeAreaView,
+  SafeAreaProvider,
+  SafeAreaInsetsContext,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext'; 
 import * as ImagePicker from 'expo-image-picker';

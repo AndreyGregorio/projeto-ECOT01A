@@ -5,9 +5,17 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  SafeAreaView,
   Alert,
 } from 'react-native';
+
+import {
+  SafeAreaView,
+  SafeAreaProvider,
+  SafeAreaInsetsContext,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+
 import { useAuth } from '../contexts/AuthContext';
 import { StackNavigationProp } from '@react-navigation/stack';
 

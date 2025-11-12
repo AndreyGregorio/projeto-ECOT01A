@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
   TextInput,
   FlatList,
   TouchableOpacity,
@@ -11,6 +10,16 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+
+import {
+  SafeAreaView,
+  SafeAreaProvider,
+  SafeAreaInsetsContext,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
+
+
+
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';

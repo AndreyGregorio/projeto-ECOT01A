@@ -85,19 +85,14 @@ export function MainBottomTabs() {
         name="Profile" 
         component={ProfileScreen} 
         options={{ title: 'Meu Perfil' }}
-        // --- MUDANÇA AQUI ---
-        // Adiciona um "ouvinte" ao botão da aba
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // Verifica se a aba 'Profile' já está focada
             const isFocused = navigation.isFocused();
 
             if (isFocused) {
-              // Se sim, previne a ação padrão (que é não fazer nada)
+
               e.preventDefault();
               
-              // E força a navegação para 'Profile' sem parâmetros,
-              // o que vai carregar o seu próprio perfil.
               navigation.navigate('Profile', { username: undefined });
             }
           },
