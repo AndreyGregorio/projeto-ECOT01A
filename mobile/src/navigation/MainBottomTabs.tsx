@@ -5,36 +5,25 @@ import { Feather } from '@expo/vector-icons';
 
 import { HomeTopTabs } from '@/navigation/HomeTopTabs';
 
-// 👇 MUDANÇA 1: Importar a tela de Perfil REAL
-// (confirme se o caminho '@/screens/ProfileScreen' está certo)
+// --- Nossas Telas Reais ---
 import ProfileScreen from '@/screens/ProfileScreen'; 
+// <-- MUDANÇA 1: Importar a nova tela de criação
+import CreatePostScreen from '@/screens/CreatePostScreen'; 
 
-// --- Placeholders (Deixe-os por enquanto) ---
+// --- Placeholders (o que sobrou) ---
 const GroupsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Grupos</Text>
   </View>
 );
-const CreateScreen = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Criar Post</Text>
-  </View>
-);
+
+// <-- MUDANÇA 2: O placeholder 'CreateScreen' foi REMOVIDO daqui
+
 const NotificationsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Notificações</Text>
   </View>
 );
-
-// ❌ MUDANÇA 2: REMOVER o placeholder de ProfileScreen daqui
-//
-// const ProfileScreen = () => (
-//   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-//     <Text>Perfil</Text>
-//   </View>
-// );
-//
-// ----------------------------------------------------
 
 const BottomTab = createBottomTabNavigator();
 
@@ -74,26 +63,30 @@ export function MainBottomTabs() {
       <BottomTab.Screen 
         name="HomeTabs" 
         component={HomeTopTabs} 
-        options={{ title: 'Feed' }} // Adicionei um 'title' para clareza
+        options={{ title: 'Feed' }} 
       />
       <BottomTab.Screen 
         name="Groups" 
         component={GroupsScreen} 
       />
+      
+      {/* <-- MUDANÇA 3: Usando o componente real */}
       <BottomTab.Screen 
         name="Create" 
-        component={CreateScreen} 
-        options={{ title: 'Criar Publicação' }}
+        component={CreatePostScreen} // Trocamos 'CreateScreen' por 'CreatePostScreen'
+        options={{ 
+          title: 'Criar Publicação',
+          // A tela 'CreatePostScreen' já tem seu próprio header customizado
+          headerShown: false 
+        }}
       />
+      
       <BottomTab.Screen 
         name="Notifications" 
         component={NotificationsScreen} 
         options={{ title: 'Notificações' }}
       />
-      {/* Tudo certo aqui! 
-        Como 'ProfileScreen' agora é o componente importado, 
-        ele vai funcionar. 
-      */}
+      {/* (Removi o {} extra que estava aqui) */}
       <BottomTab.Screen 
         name="Profile" 
         component={ProfileScreen} 

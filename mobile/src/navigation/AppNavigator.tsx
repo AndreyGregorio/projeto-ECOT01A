@@ -10,10 +10,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import LoginScreen from '@/screens/LoginScreen';
 import RegisterScreen from '@/screens/RegisterScreen';
 
-// 3. --- MUDANÇA AQUI ---
-// Importe o NOVO navegador de abas principal
+// 3. Imports das Telas do App (Logado)
 import { MainBottomTabs } from '@/navigation/MainBottomTabs'; 
-// Remova o import da antiga 'HomeScreen'
+import SettingsScreen from '@/screens/SettingsScreen';
+
+// <-- MUDANÇA 1: Importar a nova tela de Edição
+import EditProfileScreen from '@/screens/EditProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -31,17 +33,26 @@ function AuthStack() {
 function AppStack() {
   // Telas para quem ESTÁ logado
   return (
-    <Stack.Navigator>
+    // É mais limpo definir o 'headerShown: false' aqui
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen
-        // Dê um nome genérico, pois ele contém TODAS as abas
+        // Contém todas as suas abas (Home, Perfil, etc.)
         name="Main" 
-        component={MainBottomTabs} // Carregue o navegador de ABAS
-        options={{ headerShown: false }} // Esconda o header do Stack
+        component={MainBottomTabs}
       />
-      {/* Aqui você pode adicionar telas que ficam "por cima" das abas.
-        Por exemplo, uma tela de "Configurações" ou "Chat"
-      */}
-      {/* <Stack.Screen name="Settings" component={SettingsScreen} /> */}
+      
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen} 
+      />
+
+      {/* <-- MUDANÇA 2: Adicionar a tela de Edição de Perfil */}
+      {/* O SettingsScreen vai navegar para esta tela */}
+      <Stack.Screen 
+        name="EditProfile" 
+        component={EditProfileScreen} 
+      />
+
     </Stack.Navigator>
   );
 }
