@@ -1,3 +1,4 @@
+// src/db.js (VERSÃO CORRIGIDA)
 const { Pool } = require('pg');
 require('dotenv').config(); // Carrega o .env
 

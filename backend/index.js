@@ -1,4 +1,3 @@
-// --- index.js (Atualizado pelo Gemini) ---
 const express = require('express');
 const cors = require('cors');
 const bcrypt = require('bcryptjs');
@@ -14,7 +13,7 @@ app.use(cors());
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- Configuração do Multer (Sem mudança) ---
+// --- Configuração do Multer ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, 'uploads/');
@@ -27,10 +26,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-// --- Middleware de Autenticação (Sem mudança) ---
-// Este middleware é "opcional", o que é perfeito para nós.
-// Se o token existir, req.user será preenchido.
-// Se não, a rota continua, mas req.user será undefined.
+// --- Middleware de Autenticação ---
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -42,15 +38,13 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// --- Rota de Teste (Sem mudança) ---
+// --- Rota de Teste  ---
 app.get('/', (req, res) => {
     res.send('API está funcionando!');
 });
 
 // --- Rota 1: Cadastro ---
-// --- MODIFICADO: Adicionado 'username' ---
 app.post('/register', async (req, res) => {
-    // Agora esperamos 'username' no corpo da requisição
     const { name, email, password, username } = req.body;
     if (!name || !email || !password || !username) {
         return res.status(400).json({ error: 'Nome, username, email e senha são obrigatórios.' });
@@ -59,7 +53,6 @@ app.post('/register', async (req, res) => {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
         
-        // Adiciona 'username' ao INSERT
         const newUser = await pool.query(
             `INSERT INTO users (name, email, password_hash, username) 
              VALUES ($1, $2, $3, $4) 
@@ -83,19 +76,16 @@ app.post('/register', async (req, res) => {
 });
 
 // --- Rota 2: Login ---
-// --- MODIFICADO: Agora aceita 'identifier' (email ou username) ---
 app.post('/login', async (req, res) => {
-    // 1. Mude de 'email' para 'identifier'
     const { identifier, password } = req.body;
     if (!identifier || !password) {
       return res.status(400).json({ error: 'Identificador e senha são obrigatórios.' });
     }
 
     try {
-        // 2. A query SQL agora checa as DUAS colunas
         const userQuery = await pool.query(
           "SELECT * FROM users WHERE email = $1 OR username = $1", 
-          [identifier] // 3. Passa o 'identifier' para a query
+          [identifier]
         );
         
         if (userQuery.rows.length === 0) {
@@ -108,7 +98,6 @@ app.post('/login', async (req, res) => {
             return res.status(401).json({ error: 'Credenciais inválidas.' });
         }
         
-        // 4. O payload do token continua o mesmo (já tinha username)
         const userPayload = {
           id: user.id, name: user.name, email: user.email,
           course: user.course, bio: user.bio, avatar_url: user.avatar_url,
@@ -123,8 +112,7 @@ app.post('/login', async (req, res) => {
     }
 });
 
-// --- Rota 3: Atualizar Perfil (TEXTO) ---
-// --- MODIFICADO: Adicionado 'username' ---
+// --- Rota 3: Atualizar Perfil ---
 app.put('/profile/:id', verifyToken, async (req, res) => {
     try {
         const profileId = parseInt(req.params.id, 10);
@@ -160,9 +148,8 @@ app.put('/profile/:id', verifyToken, async (req, res) => {
     }
 });
 
-// --- Rota 4: UPLOAD DE FOTO DO PERFIL (Sem mudança) ---
+// --- Rota 4: UPLOAD DE FOTO DO PERFIL  ---
 app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (req, res) => {
-  // ... (código original sem mudança)
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -190,9 +177,8 @@ app.post('/profile/upload-avatar', verifyToken, upload.single('avatar'), async (
 });
 
 
-// --- Rota 5: CRIAR UM NOVO POST (Sem mudança) ---
+// --- Rota 5: CRIAR UM NOVO POST  ---
 app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => {
-  // ... (código original sem mudança)
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -219,7 +205,6 @@ app.post('/posts', verifyToken, upload.single('postImage'), async (req, res) => 
 
 
 // --- Rota 6: BUSCAR TODOS OS POSTS (FEED "PARA VOCÊ") ---
-// --- MODIFICADO: Adicionado 'author_username' ---
 app.get('/posts', verifyToken, async (req, res) => {
   try {
     const myUserId = req.user ? req.user.id : 0;
@@ -244,7 +229,7 @@ app.get('/posts', verifyToken, async (req, res) => {
         FROM posts
         JOIN users ON posts.user_id = users.id
         ORDER BY posts.created_at DESC
-        LIMIT 20`, // Adicionei um LIMIT para não sobrecarregar
+        LIMIT 20`, // LIMIT para não sobrecarregar
       [myUserId]
     );
     res.status(200).json(feedQuery.rows);
@@ -256,20 +241,17 @@ app.get('/posts', verifyToken, async (req, res) => {
 
 
 // --- Rota 7: BUSCAR POSTS DE UM USUÁRIO ESPECÍFICO ---
-// --- MODIFICADO: Mudei de '/posts/user/:id' para '/posts/user/:username' ---
 app.get('/posts/user/:username', verifyToken, async (req, res) => {
   try {
     const { username } = req.params;
     const myUserId = req.user ? req.user.id : 0;
 
-    // Primeiro, precisamos do ID do usuário a partir do username
     const userQuery = await pool.query("SELECT id FROM users WHERE username = $1", [username]);
     if (userQuery.rows.length === 0) {
       return res.status(404).json({ error: "Usuário não encontrado." });
     }
     const profileUserId = userQuery.rows[0].id;
     
-    // A query SQL agora é a mesma de antes, mas usando 'profileUserId'
     const feedQuery = await pool.query(
       `SELECT 
           posts.id, 
@@ -302,9 +284,8 @@ app.get('/posts/user/:username', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 8: DELETAR UM POST (Sem mudança na lógica) ---
+// --- Rota 8: DELETAR UM POST  ---
 app.delete('/posts/:id', verifyToken, async (req, res) => {
-  // ... (código original sem mudança)
   try {
     if (!req.user) {
       return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -328,9 +309,8 @@ app.delete('/posts/:id', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 9: CURTIR/DESCURTIR (Sem mudança na lógica) ---
+// --- Rota 9: CURTIR/DESCURTIR  ---
 app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
-  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
@@ -355,7 +335,6 @@ app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
         [userId, postId]
       );
       
-      // Gatilho de Notificação (like)
       try {
         await pool.query(
           `INSERT INTO notifications (recipient_id, sender_id, post_id, type)
@@ -380,9 +359,8 @@ app.post('/posts/:id/toggle-like', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 10: LER comentários (Sem mudança na lógica) ---
+// --- Rota 10: LER comentários  ---
 app.get('/posts/:id/comments', verifyToken, async (req, res) => {
-  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
@@ -409,9 +387,8 @@ app.get('/posts/:id/comments', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 11: CRIAR comentário (Sem mudança na lógica) ---
+// --- Rota 11: CRIAR comentário  ---
 app.post('/posts/:id/comments', verifyToken, async (req, res) => {
-  // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
   }
@@ -420,7 +397,6 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
     if (isNaN(postId)) return res.status(400).json({ error: "ID inválido." });
     
     const { content } = req.body;
-    // Pegando 'username' do req.user
     const { id: userId, name: authorName, avatar_url: authorAvatar, username: authorUsername } = req.user;
 
     if (!content) {
@@ -433,7 +409,6 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
       [userId, postId, content]
     );
 
-    // Gatilho de Notificação (comment)
     try {
       await pool.query(
         `INSERT INTO notifications (recipient_id, sender_id, post_id, type)
@@ -446,14 +421,13 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
       console.error("Erro ao criar notificação de comment:", err.message);
     }
     
-    // Adicionando 'author_username' à resposta
     const commentWithAuthor = {
       id: newComment.rows[0].id,
       content: newComment.rows[0].content,
       created_at: newComment.rows[0].created_at,
       author_name: authorName,
       author_avatar: authorAvatar,
-      author_username: authorUsername // <-- ADICIONADO AQUI
+      author_username: authorUsername 
     };
     res.status(201).json(commentWithAuthor);
   } catch (err) {
@@ -463,7 +437,7 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
 });
 
 
-// --- Rota 12: BUSCAR Notificações (Sem mudança na lógica) ---
+// --- Rota 12: BUSCAR Notificações  ---
 app.get('/notifications', verifyToken, async (req, res) => {
   // ... (código original sem mudança)
   if (!req.user) {
@@ -491,11 +465,10 @@ app.get('/notifications', verifyToken, async (req, res) => {
 
 
 // ==========================================================
-// --- NOVAS ROTAS - SISTEMA DE SEGUIDORES ---
+// --- SISTEMA DE SEGUIDORES ---
 // ==========================================================
 
-// --- NOVO (Rota 13): FEED "SEGUINDO" ---
-// Retorna posts apenas de pessoas que o usuário logado segue.
+// --- Rota 13: FEED "SEGUINDO" ---
 app.get('/feed/following', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -504,7 +477,6 @@ app.get('/feed/following', verifyToken, async (req, res) => {
   const myUserId = req.user.id;
   
   try {
-    // Esta query é parecida com a Rota 6, mas faz um JOIN com a tabela 'follows'
     const feedQuery = await pool.query(
       `SELECT 
           posts.id, 
@@ -539,16 +511,12 @@ app.get('/feed/following', verifyToken, async (req, res) => {
   }
 });
 
-// --- NOVO (Rota 14): VER PERFIL DE UM USUÁRIO ---
-// Retorna os dados públicos de um usuário, contagem de seguidores,
-// e se o usuário logado segue esta pessoa.
+// --- Rota 14: VER PERFIL DE UM USUÁRIO ---
 app.get('/profile/:username', verifyToken, async (req, res) => {
   const { username } = req.params;
-  // ID do usuário logado (pode ser 0 se não estiver logado)
   const myUserId = req.user ? req.user.id : 0; 
   
   try {
-    // Usamos sub-queries para contar seguidores/seguindo e checar se 'eu' sigo
     const profileQuery = await pool.query(
       `SELECT
           id, name, username, course, bio, avatar_url,
@@ -575,7 +543,7 @@ app.get('/profile/:username', verifyToken, async (req, res) => {
 });
 
 
-// --- NOVO (Rota 15): SEGUIR UM USUÁRIO ---
+// --- Rota 15: SEGUIR UM USUÁRIO ---
 app.post('/users/:username/follow', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -585,7 +553,6 @@ app.post('/users/:username/follow', verifyToken, async (req, res) => {
   const { id: myUserId } = req.user;
   
   try {
-    // 1. Encontrar o ID do usuário a ser seguido
     const userQuery = await pool.query("SELECT id FROM users WHERE username = $1", [userToFollow]);
     if (userQuery.rows.length === 0) {
       return res.status(404).json({ error: "Usuário a seguir não encontrado." });
@@ -596,13 +563,11 @@ app.post('/users/:username/follow', verifyToken, async (req, res) => {
       return res.status(400).json({ error: "Você não pode seguir a si mesmo." });
     }
 
-    // 2. Inserir a relação na tabela 'follows'
     await pool.query(
       "INSERT INTO follows (follower_id, following_id) VALUES ($1, $2)",
       [myUserId, followingId]
     );
-    
-    // 3. (Opcional) Criar notificação de 'follow'
+
     try {
         await pool.query(
           `INSERT INTO notifications (recipient_id, sender_id, type)
@@ -624,7 +589,7 @@ app.post('/users/:username/follow', verifyToken, async (req, res) => {
   }
 });
 
-// --- NOVO (Rota 16): DEIXAR DE SEGUIR UM USUÁRIO ---
+// --- Rota 16: DEIXAR DE SEGUIR UM USUÁRIO ---
 app.delete('/users/:username/unfollow', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -634,14 +599,12 @@ app.delete('/users/:username/unfollow', verifyToken, async (req, res) => {
   const { id: myUserId } = req.user;
   
   try {
-    // 1. Encontrar o ID do usuário
     const userQuery = await pool.query("SELECT id FROM users WHERE username = $1", [userToUnfollow]);
     if (userQuery.rows.length === 0) {
       return res.status(404).json({ error: "Usuário não encontrado." });
     }
     const followingId = userQuery.rows[0].id;
 
-    // 2. Deletar a relação
     const deleteQuery = await pool.query(
       "DELETE FROM follows WHERE follower_id = $1 AND following_id = $2",
       [myUserId, followingId]
@@ -660,13 +623,13 @@ app.delete('/users/:username/unfollow', verifyToken, async (req, res) => {
 });
 
 
-// --- NOVO (Rota 17): BUSCA DE USUÁRIOS ---
+// --- Rota 17: BUSCA DE USUÁRIOS ---
 app.get('/search/users', verifyToken, async (req, res) => {
-  const { q } = req.query; // Pega o termo de busca (ex: /search/users?q=andrey)
+  const { q } = req.query; 
   const myUserId = req.user ? req.user.id : 0;
   
   if (!q) {
-    return res.status(200).json([]); // Retorna array vazio se a busca for vazia
+    return res.status(200).json([]); 
   }
   
   try {
@@ -693,7 +656,7 @@ app.get('/search/users', verifyToken, async (req, res) => {
 });
 
 
-// --- NOVO (Rota 18): BUSCAR PERFIL POR ID (para o "Meu Perfil") ---
+// --- Rota 18: BUSCAR PERFIL POR ID (para o "Meu Perfil") ---
 app.get('/profile/id/:id', verifyToken, async (req, res) => {
   const profileId = parseInt(req.params.id, 10);
   if (isNaN(profileId)) return res.status(400).json({ error: "ID inválido." });
@@ -725,7 +688,7 @@ app.get('/profile/id/:id', verifyToken, async (req, res) => {
   }
 });
 
-// --- NOVO (Rota 19): BUSCAR POSTS POR ID (para o "Meu Perfil") ---
+// --- Rota 19: BUSCAR POSTS POR ID (para o "Meu Perfil") ---
 app.get('/posts/user/id/:id', verifyToken, async (req, res) => {
   try {
     const profileUserId = parseInt(req.params.id, 10);
@@ -755,6 +718,161 @@ app.get('/posts/user/id/:id', verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Erro ao buscar posts do usuário por ID:", err.message);
     res.status(500).json({ error: 'Erro interno do servidor.' });
+  }
+});
+
+// ==========================================================
+// --- SISTEMA DE QUADRO DE AVISOS (COMUNIDADES) ---
+// ==========================================================
+
+// --- Rota 20: CRIAR UM QUADRO DE AVISOS (Ferramenta Admin/Dev) ---
+// Use isso via Postman/Insomnia para criar os cursos: "Engenharia", "Direito", etc.
+app.post('/boards', verifyToken, async (req, res) => {
+  // Idealmente, verificar se o usuário é admin. Aqui deixarei aberto para você testar.
+  const { name, description, slug } = req.body;
+  
+  try {
+    const newBoard = await pool.query(
+      `INSERT INTO notice_boards (name, description, slug) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [name, description, slug]
+    );
+    res.status(201).json(newBoard.rows[0]);
+  } catch (err) {
+    console.error("Erro ao criar quadro:", err.message);
+    res.status(500).json({ error: 'Erro ao criar quadro.' });
+  }
+});
+
+// --- Rota 21: LISTAR TODOS OS QUADROS (Para a aba "Quadros Disponíveis") ---
+app.get('/boards', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const boards = await pool.query(
+      `SELECT 
+        nb.*,
+        (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
+        EXISTS (
+          SELECT 1 FROM board_members 
+          WHERE board_id = nb.id AND user_id = $1
+        ) as is_member
+       FROM notice_boards nb
+       ORDER BY nb.name ASC`,
+      [userId]
+    );
+    res.status(200).json(boards.rows);
+  } catch (err) {
+    console.error("Erro ao buscar quadros:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 22: ENTRAR/SAIR DE UM QUADRO (Toggle Join) ---
+app.post('/boards/:id/toggle-join', verifyToken, async (req, res) => {
+  const boardId = req.params.id; // UUID (String)
+  const userId = req.user.id;
+
+  try {
+    // Verifica se já é membro
+    const checkMember = await pool.query(
+      "SELECT * FROM board_members WHERE user_id = $1 AND board_id = $2",
+      [userId, boardId]
+    );
+
+    if (checkMember.rows.length > 0) {
+      // Se já é membro, SAI (Delete)
+      await pool.query(
+        "DELETE FROM board_members WHERE user_id = $1 AND board_id = $2",
+        [userId, boardId]
+      );
+      res.status(200).json({ joined: false });
+    } else {
+      // Se não é membro, ENTRA (Insert)
+      await pool.query(
+        "INSERT INTO board_members (user_id, board_id) VALUES ($1, $2)",
+        [userId, boardId]
+      );
+      res.status(200).json({ joined: true });
+    }
+  } catch (err) {
+    console.error("Erro ao entrar/sair do quadro:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 23: POSTAR UM AVISO ---
+// Aceita imagem ou PDF. O campo no form-data deve ser 'file'
+app.post('/boards/:id/notices', verifyToken, upload.single('file'), async (req, res) => {
+  const boardId = req.params.id;
+  const userId = req.user.id;
+  // O campo 'subject' é a matéria (ex: Cálculo 1) ou "Geral"
+  const { subject, content } = req.body; 
+  
+  if (!content) {
+    return res.status(400).json({ error: 'O conteúdo do aviso é obrigatório.' });
+  }
+
+  let fileUrl = null;
+  let fileType = null;
+
+  if (req.file) {
+    // Caminho do arquivo
+    fileUrl = `/${req.file.path.replace(/\\/g, '/')}`;
+    
+    // Detectar se é PDF ou Imagem
+    if (req.file.mimetype === 'application/pdf') {
+      fileType = 'pdf';
+    } else if (req.file.mimetype.startsWith('image/')) {
+      fileType = 'image';
+    } else {
+      fileType = 'other';
+    }
+  }
+
+  try {
+    const newNotice = await pool.query(
+      `INSERT INTO notices (board_id, user_id, subject, content, file_url, file_type) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING *`,
+      [boardId, userId, subject || 'Geral', content, fileUrl, fileType]
+    );
+
+    res.status(201).json(newNotice.rows[0]);
+
+    // Opcional: Criar notificações para todos do grupo (Cuidado com performance se o grupo for grande)
+  } catch (err) {
+    console.error("Erro ao postar aviso:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 24: FEED DE AVISOS (Meus Quadros) ---
+// Pega avisos apenas dos quadros que eu entrei
+app.get('/notices/feed', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const feedQuery = await pool.query(
+      `SELECT 
+        n.id, n.subject, n.content, n.file_url, n.file_type, n.created_at,
+        nb.name as board_name,
+        u.name as author_name, u.avatar_url as author_avatar
+       FROM notices n
+       JOIN notice_boards nb ON n.board_id = nb.id
+       JOIN users u ON n.user_id = u.id
+       JOIN board_members bm ON nb.id = bm.board_id
+       WHERE bm.user_id = $1
+       ORDER BY n.created_at DESC
+       LIMIT 50`,
+      [userId]
+    );
+
+    res.status(200).json(feedQuery.rows);
+  } catch (err) {
+    console.error("Erro ao buscar feed de avisos:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
   }
 });
 

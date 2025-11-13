@@ -16,10 +16,11 @@ import SettingsScreen from '@/screens/SettingsScreen';
 import EditProfileScreen from '@/screens/EditProfileScreen';
 import CommentsScreen from '@/screens/CommentsScreen';
 import SearchScreen from '@/screens/SearchScreen'; 
+import CreateNoticeScreen from '@/screens/CreateNoticeScreen'; // <-- Você já importou!
 
 const Stack = createNativeStackNavigator();
 
-// AuthStack 
+// AuthStack (Sem mudanças)
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -29,38 +30,52 @@ function AuthStack() {
   );
 }
 
-// AppStack 
+// AppStack (COM MUDANÇAS)
 function AppStack() {
   return (
+    // O seu Navigator já esconde o Header por padrão, o que é perfeito
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      
+      {/* --- Suas Telas Principais --- */}
       <Stack.Screen
         // Contém todas as abas (Home, Perfil, etc.)
         name="Main" 
         component={MainBottomTabs}
       />
-      
       <Stack.Screen 
         name="Settings" 
         component={SettingsScreen} 
       />
-
       <Stack.Screen 
         name="EditProfile" 
         component={EditProfileScreen} 
       />
-
       <Stack.Screen 
         name="Comments" 
         component={CommentsScreen} 
       />
-
-      {/*tela de Busca*/}
-      {}
       <Stack.Screen 
         name="SearchScreen" 
         component={SearchScreen}
         options={{ headerShown: false }} 
       />
+      
+      {/* --- MUDANÇA ADICIONADA AQUI --- */}
+      {/* Grupo de Telas Modais */}
+      {/* Estas telas deslizam de baixo para cima */}
+      <Stack.Group 
+        screenOptions={{ 
+          presentation: 'modal', // Faz a tela deslizar
+          headerShown: true      // Mostra o Header SÓ para este modal
+        }}
+      >
+        <Stack.Screen 
+          name="CreateNotice" 
+          component={CreateNoticeScreen} 
+          options={{ title: 'Criar Novo Aviso' }} 
+        />
+      </Stack.Group>
+      {/* --- FIM DA MUDANÇA --- */}
       
     </Stack.Navigator>
   );

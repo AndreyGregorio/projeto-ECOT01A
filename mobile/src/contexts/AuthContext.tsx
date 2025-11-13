@@ -3,7 +3,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { jwtDecode } from 'jwt-decode';
 
 // Seu IP da API
-const API_URL = '192.168.15.44:3000'; 
+const API_URL = 'http://192.168.15.37:3000'; 
+
+// --- Tipos para o TSX ---
 
 export interface User {
   id: number; 
