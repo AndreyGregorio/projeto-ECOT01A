@@ -10,7 +10,7 @@ import { NoticeCard, Notice } from '@/components/NoticeCard';
 import { Feather } from '@expo/vector-icons'; // --- MUDANÇA: Importar Feather
 
 export default function MyNoticesScreen() {
-  const { token, API_URL } = useAuth();
+  const { token, API_URL } = useAuth(); // <--- O API_URL ESTÁ AQUI
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,7 +70,14 @@ export default function MyNoticesScreen() {
       <FlatList
         data={notices}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <NoticeCard notice={item} />}
+        
+        // --- A ÚNICA MUDANÇA ESTÁ AQUI ---
+        // Nós estamos passando a API_URL para dentro do Card
+        renderItem={({ item }) => (
+          <NoticeCard notice={item} api_url={API_URL} /> 
+        )}
+        // --- FIM DA MUDANÇA ---
+
         contentContainerStyle={{ padding: 16 }}
         ListEmptyComponent={(
           <View style={styles.center}>

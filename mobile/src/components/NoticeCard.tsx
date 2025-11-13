@@ -17,17 +17,21 @@ export type Notice = {
   author_avatar: string | null;
 };
 
+// --- MUDANÇA 1: AQUI ESTÁ A CORREÇÃO ---
+// Adicionamos a 'api_url' às regras do componente
 type NoticeCardProps = {
   notice: Notice;
   onPress?: () => void;
+  api_url: string; // <-- A PROP QUE FALTAVA
 };
 
-// Componente para renderizar o anexo (Imagem ou PDF)
-const NoticeAttachment: React.FC<{ file_url: string; file_type: string }> = ({ file_url, file_type }) => {
+// --- MUDANÇA 2: O componente de anexo agora recebe a url ---
+const NoticeAttachment: React.FC<{ file_url: string; file_type: string; api_url: string }> = ({ file_url, file_type, api_url }) => {
   if (file_type === 'image') {
     return (
       <Image 
-        source={{ uri: file_url }} 
+        // 3. USANDO A API_URL AQUI (no anexo)
+        source={{ uri: api_url + file_url }} 
         style={styles.imageAttachment} 
         resizeMode="cover" 
       />
@@ -43,31 +47,29 @@ const NoticeAttachment: React.FC<{ file_url: string; file_type: string }> = ({ f
     );
   }
 
-  return null; // Sem anexo ou tipo desconhecido
+  return null; 
 };
 
-export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress }) => {
+// --- MUDANÇA 4: O componente principal agora recebe a prop ---
+export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url }) => {
   
-  // --- DEFINIÇÃO DO TIMEAGO ---
-  // A variável precisa ser definida AQUI, dentro do componente
   const timeAgo = formatDistanceToNow(new Date(notice.created_at), {
     addSuffix: true,
     locale: ptBR,
   });
-  // --- FIM DA DEFINIÇÃO ---
 
   return (
     <View style={styles.card}>
-      {/* Cabeçalho com Autor e Tempo */}
       <View style={styles.header}>
         <Image 
-          source={notice.author_avatar ? { uri: notice.author_avatar } : require('../assets/image/default-avatar.png')} 
+          // 5. USANDO A API_URL AQUI (no avatar)
+          // E usando o caminho do seu logo.svg que já tínhamos corrigido
+          source={notice.author_avatar ? { uri: api_url + notice.author_avatar } : require('../assets/image/default-avatar.png')} 
           style={styles.avatar} 
         />
         <View style={{ flex: 1 }}>
           <Text style={styles.authorName}>{notice.author_name}</Text>
-          {/* E aqui ela é usada */}
-          <Text style={styles.timeAgo}>{timeAgo}</Text> 
+          <Text style={styles.timeAgo}>{timeAgo}</Text>
         </View>
       </View>
 
@@ -86,14 +88,14 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress }) => {
 
       {/* Anexo */}
       {notice.file_url && notice.file_type && (
-        <NoticeAttachment file_url={notice.file_url} file_type={notice.file_type} />
+        // 6. PASSANDO A API_URL PARA O COMPONENTE DE ANEXO
+        <NoticeAttachment file_url={notice.file_url} file_type={notice.file_type} api_url={api_url} />
       )}
     </View>
   );
 };
 
-// --- ESTILOS ---
-// (Sem mudanças aqui, mantive o que já estava)
+// --- Estilos (sem mudança) ---
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#FFF',
@@ -138,7 +140,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   subjectTag: {
-    backgroundColor: '#E0EFFF', // Um azul leve para "Matéria"
+    backgroundColor: '#E0EFFF', 
   },
   tagText: {
     fontSize: 12,
@@ -156,6 +158,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 8,
     marginTop: 8,
+    backgroundColor: '#F0F0F0', // Fica cinza enquanto carrega
   },
   pdfAttachment: {
     flexDirection: 'row',
