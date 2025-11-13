@@ -1,8 +1,13 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react'; 
+import { 
+  View, Text, Image, StyleSheet, 
+  TouchableOpacity, Alert 
+} from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import * as WebBrowser from 'expo-web-browser'; 
+import ImageView from 'react-native-image-viewing';
 
 // O tipo de dado que esperamos da API (Rota 24)
 export type Notice = {
@@ -17,40 +22,73 @@ export type Notice = {
   author_avatar: string | null;
 };
 
-// --- MUDANÇA 1: AQUI ESTÁ A CORREÇÃO ---
-// Adicionamos a 'api_url' às regras do componente
 type NoticeCardProps = {
   notice: Notice;
   onPress?: () => void;
-  api_url: string; // <-- A PROP QUE FALTAVA
+  api_url: string; 
 };
 
-// --- MUDANÇA 2: O componente de anexo agora recebe a url ---
+// --- COMPONENTE DE ANEXO ---
 const NoticeAttachment: React.FC<{ file_url: string; file_type: string; api_url: string }> = ({ file_url, file_type, api_url }) => {
+  
+  const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
+  const fullUrl = api_url + file_url; 
+
+  // Função para abrir o PDF (sem mudança)
+  const handleOpenPdf = async () => {
+    try {
+      await WebBrowser.openBrowserAsync(fullUrl);
+    } catch (error) {
+      Alert.alert("Erro", "Não foi possível abrir o anexo.");
+      console.error(error);
+    }
+  };
+
+  const images = [{ uri: fullUrl }];
+
+  // Se for imagem (COM MUDANÇA)
   if (file_type === 'image') {
     return (
-      <Image 
-        // 3. USANDO A API_URL AQUI (no anexo)
-        source={{ uri: api_url + file_url }} 
-        style={styles.imageAttachment} 
-        resizeMode="cover" 
-      />
+      <>
+        <TouchableOpacity onPress={() => setIsImageViewerVisible(true)}>
+          <Image 
+            source={{ uri: fullUrl }} 
+            style={styles.imageAttachment} 
+            resizeMode="cover" 
+          />
+        </TouchableOpacity>
+
+        {/* O MODAL VISUALIZADOR */}
+        <ImageView
+          images={images}
+          imageIndex={0}
+          visible={isImageViewerVisible}
+          onRequestClose={() => setIsImageViewerVisible(false)}
+          
+          // --- A SOLUÇÃO MÁGICA ESTÁ AQUI ---
+          // Isso diz ao iOS: "Ei, isso é só uma sobreposição,
+          // não mexa no layout que está embaixo."
+          presentationStyle="overFullScreen"
+          // --- FIM DA SOLUÇÃO ---
+        />
+      </>
     );
   }
 
+  // Se for PDF (sem mudança aqui)
   if (file_type === 'pdf') {
     return (
-      <TouchableOpacity style={styles.pdfAttachment}>
+      <TouchableOpacity style={styles.pdfAttachment} onPress={handleOpenPdf}> 
         <Feather name="file-text" size={24} color="#D9534F" />
-        <Text style={styles.pdfText}>Ver PDF (em breve)</Text>
+        <Text style={styles.pdfText}>Ver PDF Anexado</Text> 
       </TouchableOpacity>
     );
   }
 
   return null; 
 };
+// --- FIM DO COMPONENTE DE ANEXO ---
 
-// --- MUDANÇA 4: O componente principal agora recebe a prop ---
 export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url }) => {
   
   const timeAgo = formatDistanceToNow(new Date(notice.created_at), {
@@ -62,8 +100,6 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url
     <View style={styles.card}>
       <View style={styles.header}>
         <Image 
-          // 5. USANDO A API_URL AQUI (no avatar)
-          // E usando o caminho do seu logo.svg que já tínhamos corrigido
           source={notice.author_avatar ? { uri: api_url + notice.author_avatar } : require('../assets/image/default-avatar.png')} 
           style={styles.avatar} 
         />
@@ -73,7 +109,6 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url
         </View>
       </View>
 
-      {/* Tags de Quadro e Matéria */}
       <View style={styles.tagsContainer}>
         <View style={styles.tag}>
           <Text style={styles.tagText}>{notice.board_name}</Text>
@@ -83,12 +118,10 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url
         </View>
       </View>
 
-      {/* Conteúdo */}
       <Text style={styles.content}>{notice.content}</Text>
 
       {/* Anexo */}
       {notice.file_url && notice.file_type && (
-        // 6. PASSANDO A API_URL PARA O COMPONENTE DE ANEXO
         <NoticeAttachment file_url={notice.file_url} file_type={notice.file_type} api_url={api_url} />
       )}
     </View>
@@ -115,7 +148,7 @@ const styles = StyleSheet.create({
     height: 40,
     borderRadius: 20,
     marginRight: 12,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F0F0E0',
   },
   authorName: {
     fontSize: 15,
@@ -158,7 +191,7 @@ const styles = StyleSheet.create({
     height: 180,
     borderRadius: 8,
     marginTop: 8,
-    backgroundColor: '#F0F0F0', // Fica cinza enquanto carrega
+    backgroundColor: '#F0F0F0',
   },
   pdfAttachment: {
     flexDirection: 'row',
