@@ -6,13 +6,15 @@ import { Feather } from '@expo/vector-icons';
 import { HomeTopTabs } from '@/navigation/HomeTopTabs';
 import ProfileScreen from '@/screens/ProfileScreen'; 
 import CreatePostScreen from '@/screens/CreatePostScreen'; 
+import { NoticesTopTabs } from '@/navigation/NoticesTopTabs'; 
 
-const GroupsScreen = () => (
+// --- Placeholder para a futura tela de Avisos ---
+// Em breve vamos substituir isso pelo NoticesTopTabs
+const NoticesScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <Text>Grupos</Text>
+    <Text>Quadro de Avisos</Text>
   </View>
 );
-
 
 const NotificationsScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -41,8 +43,9 @@ export function MainBottomTabs() {
 
           if (route.name === 'HomeTabs') {
             iconName = 'home';
-          } else if (route.name === 'Groups') {
-            iconName = 'users';
+          } else if (route.name === 'Notices') {
+            // MUDANÇA AQUI: Ícone de prancheta/aviso
+            iconName = 'clipboard'; 
           } else if (route.name === 'Create') {
             iconName = 'plus-square';
           } else if (route.name === 'Notifications') {
@@ -60,12 +63,14 @@ export function MainBottomTabs() {
         component={HomeTopTabs} 
         options={{ title: 'Feed' }} 
       />
+      
+      {/* MUDANÇA AQUI: De Groups para Notices */}
       <BottomTab.Screen 
-        name="Groups" 
-        component={GroupsScreen} 
+        name="Notices" 
+        component={NoticesTopTabs} 
+        options={{ title: 'Avisos' }}
       />
       
-      {}
       <BottomTab.Screen 
         name="Create" 
         component={CreatePostScreen}
@@ -80,7 +85,7 @@ export function MainBottomTabs() {
         component={NotificationsScreen} 
         options={{ title: 'Notificações' }}
       />
-      {}
+      
       <BottomTab.Screen 
         name="Profile" 
         component={ProfileScreen} 
@@ -88,11 +93,8 @@ export function MainBottomTabs() {
         listeners={({ navigation }) => ({
           tabPress: (e) => {
             const isFocused = navigation.isFocused();
-
             if (isFocused) {
-
               e.preventDefault();
-              
               navigation.navigate('Profile', { username: undefined });
             }
           },

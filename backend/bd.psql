@@ -58,3 +58,38 @@ CREATE TABLE follows (
     -- Impede que alguém siga a mesma pessoa duas vezes
     UNIQUE (follower_id, following_id)
 );
+
+-- 1. Tabela de Quadros de Avisos (Comunidades)
+CREATE TABLE notice_boards (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(100) NOT NULL, -- Ex: "Engenharia da Computação"
+  slug VARCHAR(50) UNIQUE NOT NULL, -- Ex: "eng-comp"
+  description TEXT,
+  cover_image TEXT, -- URL da imagem de capa/ícone
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- 2. Tabela de Membros (Quem segue qual quadro)
+CREATE TABLE board_members (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  board_id UUID REFERENCES notice_boards(id) ON DELETE CASCADE,
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, board_id) -- Impede duplicidade
+);
+
+-- 3. Tabela de Avisos (Posts dentro do quadro)
+CREATE TABLE notices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  board_id UUID REFERENCES notice_boards(id) ON DELETE CASCADE,
+  user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, -- Quem postou
+  
+  subject VARCHAR(100) DEFAULT 'Geral', -- Ex: "Cálculo 1", "Física 3" ou "Geral"
+  content TEXT, -- O texto do aviso
+  
+  -- Anexos (Foto ou PDF)
+  file_url TEXT,
+  file_type VARCHAR(20), -- 'image' ou 'pdf'
+  
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);

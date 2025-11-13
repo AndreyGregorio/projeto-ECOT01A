@@ -721,6 +721,161 @@ app.get('/posts/user/id/:id', verifyToken, async (req, res) => {
   }
 });
 
+// ==========================================================
+// --- SISTEMA DE QUADRO DE AVISOS (COMUNIDADES) ---
+// ==========================================================
+
+// --- Rota 20: CRIAR UM QUADRO DE AVISOS (Ferramenta Admin/Dev) ---
+// Use isso via Postman/Insomnia para criar os cursos: "Engenharia", "Direito", etc.
+app.post('/boards', verifyToken, async (req, res) => {
+  // Idealmente, verificar se o usuário é admin. Aqui deixarei aberto para você testar.
+  const { name, description, slug } = req.body;
+  
+  try {
+    const newBoard = await pool.query(
+      `INSERT INTO notice_boards (name, description, slug) 
+       VALUES ($1, $2, $3) 
+       RETURNING *`,
+      [name, description, slug]
+    );
+    res.status(201).json(newBoard.rows[0]);
+  } catch (err) {
+    console.error("Erro ao criar quadro:", err.message);
+    res.status(500).json({ error: 'Erro ao criar quadro.' });
+  }
+});
+
+// --- Rota 21: LISTAR TODOS OS QUADROS (Para a aba "Quadros Disponíveis") ---
+app.get('/boards', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const boards = await pool.query(
+      `SELECT 
+        nb.*,
+        (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
+        EXISTS (
+          SELECT 1 FROM board_members 
+          WHERE board_id = nb.id AND user_id = $1
+        ) as is_member
+       FROM notice_boards nb
+       ORDER BY nb.name ASC`,
+      [userId]
+    );
+    res.status(200).json(boards.rows);
+  } catch (err) {
+    console.error("Erro ao buscar quadros:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 22: ENTRAR/SAIR DE UM QUADRO (Toggle Join) ---
+app.post('/boards/:id/toggle-join', verifyToken, async (req, res) => {
+  const boardId = req.params.id; // UUID (String)
+  const userId = req.user.id;
+
+  try {
+    // Verifica se já é membro
+    const checkMember = await pool.query(
+      "SELECT * FROM board_members WHERE user_id = $1 AND board_id = $2",
+      [userId, boardId]
+    );
+
+    if (checkMember.rows.length > 0) {
+      // Se já é membro, SAI (Delete)
+      await pool.query(
+        "DELETE FROM board_members WHERE user_id = $1 AND board_id = $2",
+        [userId, boardId]
+      );
+      res.status(200).json({ joined: false });
+    } else {
+      // Se não é membro, ENTRA (Insert)
+      await pool.query(
+        "INSERT INTO board_members (user_id, board_id) VALUES ($1, $2)",
+        [userId, boardId]
+      );
+      res.status(200).json({ joined: true });
+    }
+  } catch (err) {
+    console.error("Erro ao entrar/sair do quadro:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 23: POSTAR UM AVISO ---
+// Aceita imagem ou PDF. O campo no form-data deve ser 'file'
+app.post('/boards/:id/notices', verifyToken, upload.single('file'), async (req, res) => {
+  const boardId = req.params.id;
+  const userId = req.user.id;
+  // O campo 'subject' é a matéria (ex: Cálculo 1) ou "Geral"
+  const { subject, content } = req.body; 
+  
+  if (!content) {
+    return res.status(400).json({ error: 'O conteúdo do aviso é obrigatório.' });
+  }
+
+  let fileUrl = null;
+  let fileType = null;
+
+  if (req.file) {
+    // Caminho do arquivo
+    fileUrl = `/${req.file.path.replace(/\\/g, '/')}`;
+    
+    // Detectar se é PDF ou Imagem
+    if (req.file.mimetype === 'application/pdf') {
+      fileType = 'pdf';
+    } else if (req.file.mimetype.startsWith('image/')) {
+      fileType = 'image';
+    } else {
+      fileType = 'other';
+    }
+  }
+
+  try {
+    const newNotice = await pool.query(
+      `INSERT INTO notices (board_id, user_id, subject, content, file_url, file_type) 
+       VALUES ($1, $2, $3, $4, $5, $6) 
+       RETURNING *`,
+      [boardId, userId, subject || 'Geral', content, fileUrl, fileType]
+    );
+
+    res.status(201).json(newNotice.rows[0]);
+
+    // Opcional: Criar notificações para todos do grupo (Cuidado com performance se o grupo for grande)
+  } catch (err) {
+    console.error("Erro ao postar aviso:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 24: FEED DE AVISOS (Meus Quadros) ---
+// Pega avisos apenas dos quadros que eu entrei
+app.get('/notices/feed', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const feedQuery = await pool.query(
+      `SELECT 
+        n.id, n.subject, n.content, n.file_url, n.file_type, n.created_at,
+        nb.name as board_name,
+        u.name as author_name, u.avatar_url as author_avatar
+       FROM notices n
+       JOIN notice_boards nb ON n.board_id = nb.id
+       JOIN users u ON n.user_id = u.id
+       JOIN board_members bm ON nb.id = bm.board_id
+       WHERE bm.user_id = $1
+       ORDER BY n.created_at DESC
+       LIMIT 50`,
+      [userId]
+    );
+
+    res.status(200).json(feedQuery.rows);
+  } catch (err) {
+    console.error("Erro ao buscar feed de avisos:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
 const PORT = 3000;
 
 // --- Iniciar o Servidor ---
