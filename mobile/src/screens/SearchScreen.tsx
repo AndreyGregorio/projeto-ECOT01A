@@ -10,21 +10,30 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-
-import {
-  SafeAreaView,
-  SafeAreaProvider,
-  SafeAreaInsetsContext,
-  useSafeAreaInsets,
-} from 'react-native-safe-area-context';
-
-
-
-import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons, Feather } from '@expo/vector-icons'; // --- MODIFICADO: Adicionado Feather
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
+// --- NOVO: Importa o navegador de abas ---
+import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
+
+// --- (Seu hook useDebounce, sem mudanças) ---
+function useDebounce(value: string, delay: number): string {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+  return debouncedValue;
+}
+
+// --- Tipos de Resultado ---
 interface UserSearchResult {
   id: number;
   name: string;
@@ -33,35 +42,22 @@ interface UserSearchResult {
   is_following_by_me: boolean;
 }
 
-function useDebounce(value: string, delay: number): string {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    // Cria um timer
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    // Limpa o timer se o 'value' mudar (usuário continuou digitando)
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
+// --- NOVO: Tipo para o resultado dos Quadros ---
+interface BoardSearchResult {
+  id: string; // É UUID
+  name: string;
+  description: string;
+  member_count: string;
+  is_member: boolean;
 }
 
-
-//Componente para o Item da Lista
+// --- (Componente UserResultItem, sem mudanças) ---
 const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
   const { API_URL, token } = useAuth();
   const navigation = useNavigation<any>();
-
-  // Estado de "seguir" local para este item
   const [isFollowing, setIsFollowing] = useState(user.is_following_by_me);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Helper para a URL da imagem (igual ao do HomeScreen)
   const getSafeImageUri = (path: string | null | undefined) => {
     if (!path) return null;
     if (path.startsWith('http')) return { uri: path };
@@ -73,17 +69,15 @@ const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
 
   const goToProfile = () => {
     navigation.navigate('Main', { 
-      screen: 'Profile',         
+      screen: 'Profile',       
       params: { username: user.username }, 
     });
   };
 
-  // Lógica de seguir/parar de seguir
   const handleToggleFollow = async () => {
     setIsLoading(true);
     const action = isFollowing ? 'unfollow' : 'follow';
     const method = isFollowing ? 'DELETE' : 'POST';
-
     try {
       const response = await fetch(
         `${API_URL}/users/${user.username}/${action}`,
@@ -93,10 +87,7 @@ const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
         }
       );
       if (!response.ok) throw new Error('Falha na operação.');
-      
-      //Atualiza o estado local
       setIsFollowing(!isFollowing); 
-
     } catch (error: any) {
       Alert.alert('Erro', error.message);
     } finally {
@@ -109,14 +100,12 @@ const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
       {avatarSource ? (
         <Image source={avatarSource} style={styles.avatar} />
       ) : (
-        <View style={styles.avatar} />
+        <View style={styles.avatar} /> // Placeholder
       )}
       <View style={styles.userInfo}>
         <Text style={styles.name}>{user.name}</Text>
         <Text style={styles.username}>@{user.username}</Text>
       </View>
-      
-      {/* Botão Dinâmico */}
       <TouchableOpacity
         style={[
           styles.followButton,
@@ -142,27 +131,76 @@ const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
   );
 };
 
-
-// Tela Principal de Busca
-export default function SearchScreen() {
+// --- NOVO: Componente para o Item de Quadro (Comunidade) ---
+// (Lógica de "Entrar/Sair" copiada do AllBoardsScreen)
+const BoardResultItem: React.FC<{ board: BoardSearchResult }> = ({ board }) => {
   const { API_URL, token } = useAuth();
-  const navigation = useNavigation();
+  const [isMember, setIsMember] = useState(board.is_member);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [query, setQuery] = useState('');
+  const handleToggleJoin = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/boards/${board.id}/toggle-join`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Falha na operação.');
+      setIsMember(!isMember); // Atualiza o estado local
+    } catch (error: any) {
+      Alert.alert('Erro', error.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <TouchableOpacity style={styles.resultItem}>
+      <View style={[styles.avatar, styles.boardAvatar]}>
+        <Feather name="hash" size={24} color="#333" />
+      </View>
+      <View style={styles.userInfo}>
+        <Text style={styles.name}>{board.name}</Text>
+        <Text style={styles.username}>{board.member_count} membros</Text>
+      </View>
+      <TouchableOpacity
+        style={[
+          styles.followButton, // Reutilizando o estilo base
+          isMember ? styles.unfollowButton : styles.joinButtonActive, // Estilo "join"
+        ]}
+        onPress={handleToggleJoin}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator size="small" color={isMember ? '#333' : '#FFF'} />
+        ) : (
+          <Text
+            style={[
+              styles.followButtonText,
+              isMember ? styles.unfollowButtonText : styles.followButtonTextActive,
+            ]}
+          >
+            {isMember ? 'Sair' : 'Entrar'}
+          </Text>
+        )}
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+};
+
+
+// --- NOVO: Componente-Filho 1 (Lista de Usuários) ---
+const UserSearchList: React.FC<{ query: string }> = ({ query }) => {
+  const { API_URL, token } = useAuth();
   const [results, setResults] = useState<UserSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const debouncedQuery = useDebounce(query, 300);
-
-  //função que chama a API
   const searchUsers = async (searchQuery: string) => {
     setLoading(true);
     try {
       const response = await fetch(
         `${API_URL}/search/users?q=${encodeURIComponent(searchQuery)}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!response.ok) throw new Error('Falha ao buscar.');
       const data: UserSearchResult[] = await response.json();
@@ -175,13 +213,98 @@ export default function SearchScreen() {
   };
 
   useEffect(() => {
-    if (debouncedQuery.trim().length > 1) {
-      searchUsers(debouncedQuery);
+    if (query.trim().length > 1) {
+      searchUsers(query);
     } else {
       setResults([]); 
     }
-  }, [debouncedQuery]); 
+  }, [query]); 
 
+  if (loading) {
+    return <View style={styles.emptyContainer}><ActivityIndicator size="large" /></View>
+  }
+
+  return (
+    <FlatList
+      data={results}
+      keyExtractor={(item) => item.id.toString()}
+      renderItem={({ item }) => <UserResultItem user={item} />}
+      style={{ backgroundColor: 'white' }}
+      ListEmptyComponent={
+        !loading && query.length > 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Nenhum usuário encontrado.</Text>
+          </View>
+        ) : null
+      }
+    />
+  );
+};
+
+// --- NOVO: Componente-Filho 2 (Lista de Quadros) ---
+const BoardSearchList: React.FC<{ query: string }> = ({ query }) => {
+  const { API_URL, token } = useAuth();
+  const [results, setResults] = useState<BoardSearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Função de busca MODIFICADA
+  const searchBoards = async (searchQuery: string) => {
+    setLoading(true);
+    try {
+      const response = await fetch(
+        `${API_URL}/search/boards?q=${encodeURIComponent(searchQuery)}`, // Rota 27
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (!response.ok) throw new Error('Falha ao buscar.');
+      const data: BoardSearchResult[] = await response.json();
+      setResults(data);
+    } catch (error: any) {
+      Alert.alert('Erro', error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (query.trim().length > 1) {
+      searchBoards(query);
+    } else {
+      setResults([]); 
+    }
+  }, [query]); 
+
+  if (loading) {
+    return <View style={styles.emptyContainer}><ActivityIndicator size="large" /></View>
+  }
+
+  return (
+    <FlatList
+      data={results}
+      keyExtractor={(item) => item.id} // UUID é string
+      renderItem={({ item }) => <BoardResultItem board={item} />} // Renderiza o novo item
+      style={{ backgroundColor: 'white' }}
+      ListEmptyComponent={
+        !loading && query.length > 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>Nenhum quadro encontrado.</Text>
+          </View>
+        ) : null
+      }
+    />
+  );
+};
+
+
+// --- NOVO: Cria o Navegador de Abas ---
+const Tab = createMaterialTopTabNavigator();
+
+// --- MODIFICADO: Tela Principal (agora é o "Pai") ---
+export default function SearchScreen() {
+  const navigation = useNavigation();
+  const [query, setQuery] = useState('');
+  const debouncedQuery = useDebounce(query, 300); // Debounce fica no Pai
+
+  // Foco no input (sem mudança)
   const textInputRef = React.useRef<TextInput>(null);
   useFocusEffect(useCallback(() => {
     textInputRef.current?.focus();
@@ -196,32 +319,38 @@ export default function SearchScreen() {
         <TextInput
           ref={textInputRef}
           style={styles.searchInput}
-          placeholder="Buscar usuários..."
+          placeholder="Buscar usuários ou quadros..." // Placeholder atualizado
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
         />
-        {loading && <ActivityIndicator style={{ marginLeft: 8 }} />}
+        {/* O ActivityIndicator foi movido para dentro das abas */}
       </View>
 
-      <FlatList
-        data={results}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <UserResultItem user={item} />}
-        ListEmptyComponent={
-          !loading && query.length > 0 ? (
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>Nenhum usuário encontrado.</Text>
-            </View>
-          ) : null
-        }
-      />
+      {/* --- NOVO: Renderiza o Navegador de Abas --- */}
+      {/* Usamos o padrão "função como filho" para passar a 'query' 
+        atualizada para as telas das abas.
+      */}
+      <Tab.Navigator
+        screenOptions={{
+          tabBarLabelStyle: { fontWeight: 'bold' },
+          tabBarIndicatorStyle: { backgroundColor: '#000' }
+        }}
+      >
+        <Tab.Screen name="Usuários">
+          {() => <UserSearchList query={debouncedQuery} />}
+        </Tab.Screen>
+        <Tab.Screen name="Quadros">
+          {() => <BoardSearchList query={debouncedQuery} />}
+        </Tab.Screen>
+      </Tab.Navigator>
     </SafeAreaView>
   );
 }
 
+// --- MODIFICADO: Estilos ---
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -235,6 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
+    backgroundColor: 'white', // Garante o fundo
   },
   searchInput: {
     flex: 1,
@@ -247,14 +377,15 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    paddingTop: 100,
+    paddingTop: 60, // Menos padding
     alignItems: 'center',
+    backgroundColor: 'white',
   },
   emptyText: {
     fontSize: 16,
     color: '#828282',
   },
-  // Estilos do Item de Resultado
+  // Estilos do Item de Resultado (Usuário)
   resultItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -269,8 +400,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEE',
     marginRight: 12,
   },
+  // --- NOVO: Estilo para o avatar do Quadro ---
+  boardAvatar: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   userInfo: {
-    flex: 1, // Ocupa o espaço
+    flex: 1, 
   },
   name: {
     fontSize: 16,
@@ -281,6 +417,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
+  // Estilos de Botão (Reutilizados)
   followButton: {
     paddingVertical: 6,
     paddingHorizontal: 16,
@@ -290,7 +427,11 @@ const styles = StyleSheet.create({
     minWidth: 90,
   },
   followButtonActive: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#007AFF', // Azul
+  },
+  // --- NOVO: Estilo para o botão "Entrar" (copiado do "Seguir") ---
+  joinButtonActive: {
+    backgroundColor: '#000', // Preto
   },
   unfollowButton: {
     backgroundColor: 'transparent',

@@ -16,7 +16,8 @@ import SettingsScreen from '@/screens/SettingsScreen';
 import EditProfileScreen from '@/screens/EditProfileScreen';
 import CommentsScreen from '@/screens/CommentsScreen';
 import SearchScreen from '@/screens/SearchScreen'; 
-import CreateNoticeScreen from '@/screens/CreateNoticeScreen'; // <-- Você já importou!
+import CreateNoticeScreen from '@/screens/CreateNoticeScreen'; 
+import EditNoticeScreen from '@/screens/EditNoticeScreen'; // <-- Importado corretamente
 
 const Stack = createNativeStackNavigator();
 
@@ -59,10 +60,8 @@ function AppStack() {
         component={SearchScreen}
         options={{ headerShown: false }} 
       />
-      
-      {/* --- MUDANÇA ADICIONADA AQUI --- */}
-      {/* Grupo de Telas Modais */}
-      {/* Estas telas deslizam de baixo para cima */}
+    
+      {/* --- Grupo de Telas Modais --- */}
       <Stack.Group 
         screenOptions={{ 
           presentation: 'modal', // Faz a tela deslizar
@@ -74,8 +73,17 @@ function AppStack() {
           component={CreateNoticeScreen} 
           options={{ title: 'Criar Novo Aviso' }} 
         />
+        
+        {/* --- A CORREÇÃO ESTÁ AQUI --- */}
+        {/* O nome precisa ser "EditNoticeScreen" para bater com o navigation.navigate() */}
+        <Stack.Screen 
+          name="EditNoticeScreen" // <-- Mudei de "EditNotice" para "EditNoticeScreen"
+          component={EditNoticeScreen} 
+          options={{ title: 'Editar Aviso' }} // O 'headerShown: true' aqui é redundante, já que está no Group
+        />
+        {/* --- FIM DA CORREÇÃO --- */}
       </Stack.Group>
-      {/* --- FIM DA MUDANÇA --- */}
+
       
     </Stack.Navigator>
   );

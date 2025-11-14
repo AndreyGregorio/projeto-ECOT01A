@@ -15,9 +15,6 @@ import {
 
 import {
   SafeAreaView,
-  SafeAreaProvider,
-  SafeAreaInsetsContext,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 
 import { useRoute, useNavigation } from '@react-navigation/native';
@@ -33,9 +30,12 @@ interface Comment {
   author_avatar: string | null;
 }
 
-// Componente para cada item da lista
-const CommentItem: React.FC<{ comment: Comment }> = ({ comment }) => {
-  const avatarSource = comment.author_avatar ? { uri: comment.author_avatar } : null;
+// --- MUDANÇA 1: O componente agora aceita 'api_url' ---
+const CommentItem: React.FC<{ comment: Comment; api_url: string }> = ({ comment, api_url }) => {
+  
+  // --- MUDANÇA 2: Usamos a 'api_url' para construir o link completo ---
+  const avatarSource = comment.author_avatar ? { uri: api_url + comment.author_avatar } : null;
+  
   return (
     <View style={styles.commentContainer}>
       {avatarSource ? (
@@ -55,20 +55,17 @@ const CommentItem: React.FC<{ comment: Comment }> = ({ comment }) => {
 export default function CommentsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { API_URL, token } = useAuth();
+  const { API_URL, token } = useAuth(); // <-- A URL que precisamos
   
-  // O ID do post que estamos a ver
   const { postId } = route.params as { postId: number }; 
 
   const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState(''); // O texto na caixa
+  const [newComment, setNewComment] = useState(''); 
   const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false); // Loading do botão "Enviar"
+  const [posting, setPosting] = useState(false); 
 
-  // --- Funções ---
-
-  // 1. Buscar os comentários
-  const fetchComments = async () => {
+  // --- Funções (Sem mudanças) ---
+  const fetchComments = async () => { /* ... (código sem mudança) ... */ 
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/posts/${postId}/comments`, {
@@ -83,11 +80,8 @@ export default function CommentsScreen() {
       setLoading(false);
     }
   };
-
-  // 2. Postar um novo comentário
-  const handlePostComment = async () => {
+  const handlePostComment = async () => { /* ... (código sem mudança) ... */ 
     if (newComment.trim() === '') return; 
-    
     setPosting(true);
     try {
       const response = await fetch(`${API_URL}/posts/${postId}/comments`, {
@@ -116,7 +110,6 @@ export default function CommentsScreen() {
       setPosting(false);
     }
   };
-
   useEffect(() => {
     fetchComments();
   }, [postId]);
@@ -124,9 +117,9 @@ export default function CommentsScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.container}
-        keyboardVerticalOffset={100} 
+        keyboardVerticalOffset={0} 
       >
         {/* Header */}
         <View style={styles.header}>
@@ -143,7 +136,8 @@ export default function CommentsScreen() {
         ) : (
           <FlatList
             data={comments}
-            renderItem={({ item }) => <CommentItem comment={item} />}
+            // --- MUDANÇA 3: Passamos a API_URL para o CommentItem ---
+            renderItem={({ item }) => <CommentItem comment={item} api_url={API_URL} />}
             keyExtractor={(item) => item.id.toString()}
             style={styles.list}
             ListEmptyComponent={
@@ -178,7 +172,7 @@ export default function CommentsScreen() {
   );
 }
 
-// --- Estilos para CommentsScreen ---
+// --- Estilos (Sem mudanças) ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   container: { flex: 1 },
@@ -202,7 +196,7 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
   commentBody: {
-    flex: 1, // Permite que o texto quebre a linha
+    flex: 1, 
   },
   commentAuthor: {
     fontWeight: 'bold',
@@ -230,7 +224,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     fontSize: 16,
-    maxHeight: 100, // Limite para o 'multiline'
+    maxHeight: 100, 
     marginRight: 8,
   },
   sendButton: {

@@ -9,7 +9,7 @@ import { ptBR } from 'date-fns/locale';
 import * as WebBrowser from 'expo-web-browser'; 
 import ImageView from 'react-native-image-viewing';
 
-// O tipo de dado que esperamos da API (Rota 24)
+// --- Tipos ---
 export type Notice = {
   id: string;
   subject: string;
@@ -20,21 +20,23 @@ export type Notice = {
   board_name: string;
   author_name: string;
   author_avatar: string | null;
+  author_id: number; // <-- CORRETO (number)
 };
 
 type NoticeCardProps = {
   notice: Notice;
-  onPress?: () => void;
   api_url: string; 
+  currentUserId: number; // <-- CORRETO (number)
+  onDelete: (noticeId: string) => void; 
+  onEdit: (notice: Notice) => void;
 };
 
-// --- COMPONENTE DE ANEXO ---
+// --- Componente de Anexo ---
 const NoticeAttachment: React.FC<{ file_url: string; file_type: string; api_url: string }> = ({ file_url, file_type, api_url }) => {
   
   const [isImageViewerVisible, setIsImageViewerVisible] = useState(false);
   const fullUrl = api_url + file_url; 
 
-  // Função para abrir o PDF (sem mudança)
   const handleOpenPdf = async () => {
     try {
       await WebBrowser.openBrowserAsync(fullUrl);
@@ -46,7 +48,6 @@ const NoticeAttachment: React.FC<{ file_url: string; file_type: string; api_url:
 
   const images = [{ uri: fullUrl }];
 
-  // Se for imagem (COM MUDANÇA)
   if (file_type === 'image') {
     return (
       <>
@@ -57,25 +58,17 @@ const NoticeAttachment: React.FC<{ file_url: string; file_type: string; api_url:
             resizeMode="cover" 
           />
         </TouchableOpacity>
-
-        {/* O MODAL VISUALIZADOR */}
         <ImageView
           images={images}
           imageIndex={0}
           visible={isImageViewerVisible}
           onRequestClose={() => setIsImageViewerVisible(false)}
-          
-          // --- A SOLUÇÃO MÁGICA ESTÁ AQUI ---
-          // Isso diz ao iOS: "Ei, isso é só uma sobreposição,
-          // não mexa no layout que está embaixo."
           presentationStyle="overFullScreen"
-          // --- FIM DA SOLUÇÃO ---
         />
       </>
     );
   }
 
-  // Se for PDF (sem mudança aqui)
   if (file_type === 'pdf') {
     return (
       <TouchableOpacity style={styles.pdfAttachment} onPress={handleOpenPdf}> 
@@ -87,14 +80,46 @@ const NoticeAttachment: React.FC<{ file_url: string; file_type: string; api_url:
 
   return null; 
 };
-// --- FIM DO COMPONENTE DE ANEXO ---
 
-export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url }) => {
+
+// --- Componente Principal do Card ---
+export const NoticeCard: React.FC<NoticeCardProps> = ({ 
+  notice, 
+  api_url, 
+  currentUserId, 
+  onDelete, 
+  onEdit 
+}) => {
   
   const timeAgo = formatDistanceToNow(new Date(notice.created_at), {
     addSuffix: true,
     locale: ptBR,
   });
+
+  // A Lógica de "Dono" (number === number)
+  const isOwner = notice.author_id === currentUserId;
+
+  // --- AQUI ESTÁ A MUDANÇA QUE VOCÊ QUERIA ---
+  // Função para mostrar o Alerta de Opções (COM O BOTÃO EDITAR)
+  const showOptions = () => {
+    Alert.alert(
+      "Opções do Aviso",
+      "O que você gostaria de fazer?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Editar", // <-- Ativado
+          onPress: () => onEdit(notice) // <-- Ativado
+        },
+        { 
+          text: "Apagar", 
+          style: "destructive", 
+          onPress: () => onDelete(notice.id) 
+        }
+      ]
+    );
+  };
+  // --- FIM DA MUDANÇA ---
 
   return (
     <View style={styles.card}>
@@ -103,12 +128,20 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url
           source={notice.author_avatar ? { uri: api_url + notice.author_avatar } : require('../assets/image/default-avatar.png')} 
           style={styles.avatar} 
         />
-        <View style={{ flex: 1 }}>
+        <View style={styles.headerContent}>
           <Text style={styles.authorName}>{notice.author_name}</Text>
           <Text style={styles.timeAgo}>{timeAgo}</Text>
         </View>
+
+        {/* O Botão "..." (Só aparece se for o dono) */}
+        {isOwner && (
+          <TouchableOpacity onPress={showOptions} style={styles.optionsButton}>
+            <Feather name="more-horizontal" size={24} color="#666" />
+          </TouchableOpacity>
+        )}
       </View>
 
+      {/* Resto do card */}
       <View style={styles.tagsContainer}>
         <View style={styles.tag}>
           <Text style={styles.tagText}>{notice.board_name}</Text>
@@ -117,10 +150,7 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url
           <Text style={styles.tagText}>{notice.subject}</Text>
         </View>
       </View>
-
       <Text style={styles.content}>{notice.content}</Text>
-
-      {/* Anexo */}
       {notice.file_url && notice.file_type && (
         <NoticeAttachment file_url={notice.file_url} file_type={notice.file_type} api_url={api_url} />
       )}
@@ -128,20 +158,20 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({ notice, onPress, api_url
   );
 };
 
-// --- Estilos (sem mudança) ---
+
+
+// --- Estilos ---
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  headerContent: {
+    flex: 1, 
+  },
+  optionsButton: {
+    padding: 8, 
   },
   avatar: {
     width: 40,
@@ -158,6 +188,14 @@ const styles = StyleSheet.create({
   timeAgo: {
     fontSize: 12,
     color: '#666',
+  },
+  card: {
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   tagsContainer: {
     flexDirection: 'row',

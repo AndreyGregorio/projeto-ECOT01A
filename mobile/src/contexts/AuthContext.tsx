@@ -8,7 +8,7 @@ const API_URL = 'http://192.168.15.37:3000';
 // --- Tipos para o TSX ---
 
 export interface User {
-  id: number; 
+  id: string;
   name: string;
   username: string; 
   email: string;

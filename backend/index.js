@@ -858,7 +858,8 @@ app.get('/notices/feed', verifyToken, async (req, res) => {
       `SELECT 
         n.id, n.subject, n.content, n.file_url, n.file_type, n.created_at,
         nb.name as board_name,
-        u.name as author_name, u.avatar_url as author_avatar
+        u.name as author_name, u.avatar_url as author_avatar,
+        n.user_id as author_id  -- <-- ADICIONE ESTA LINHA
        FROM notices n
        JOIN notice_boards nb ON n.board_id = nb.id
        JOIN users u ON n.user_id = u.id
@@ -873,6 +874,108 @@ app.get('/notices/feed', verifyToken, async (req, res) => {
   } catch (err) {
     console.error("Erro ao buscar feed de avisos:", err.message);
     res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// ==========================================================
+// --- EDIÇÃO E DELEÇÃO DE AVISOS ---
+// ==========================================================
+
+// --- Rota 25: DELETAR UM AVISO ---
+app.delete('/notices/:id', verifyToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+  
+  const noticeId = req.params.id; // UUID (String)
+  const userId = req.user.id;
+
+  try {
+    // A query só vai apagar o aviso SE o ID do aviso E o ID do usuário baterem
+    const deleteQuery = await pool.query(
+      "DELETE FROM notices WHERE id = $1 AND user_id = $2",
+      [noticeId, userId]
+    );
+
+    // Se deleteQuery.rowCount for 0, significa que ou o post não existe
+    // ou o usuário não era o dono.
+    if (deleteQuery.rowCount === 0) {
+      return res.status(403).json({ error: 'Acesso negado. Você não é o dono deste aviso.' });
+    }
+
+    res.status(204).send(); // 204 = Sucesso, sem conteúdo
+
+  } catch (err) {
+    console.error("Erro ao deletar aviso:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 26: EDITAR UM AVISO ---
+// (Versão simples, só edita texto. Editar arquivos é bem mais complexo)
+app.put('/notices/:id', verifyToken, async (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+
+  const noticeId = req.params.id;
+  const userId = req.user.id;
+  const { subject, content } = req.body; // Pega os novos textos
+
+  if (!content) {
+    return res.status(400).json({ error: 'O conteúdo não pode ficar vazio.' });
+  }
+
+  try {
+    const updateQuery = await pool.query(
+      `UPDATE notices 
+       SET subject = $1, content = $2 
+       WHERE id = $3 AND user_id = $4
+       RETURNING *`, // RETURNING * nos devolve o post atualizado
+      [subject || 'Geral', content, noticeId, userId]
+    );
+
+    if (updateQuery.rows.length === 0) {
+      return res.status(403).json({ error: 'Acesso negado. Você não é o dono deste aviso.' });
+    }
+
+    res.status(200).json(updateQuery.rows[0]); // Devolve o aviso atualizado
+
+  } catch (err) {
+    console.error("Erro ao editar aviso:", err.message);
+    res.status(500).json({ error: 'Erro interno.' });
+  }
+});
+
+// --- Rota 27: BUSCA DE QUADROS ---
+app.get('/search/boards', verifyToken, async (req, res) => {
+  const { q } = req.query; // A query de busca (ex: "engenharia")
+  const myUserId = req.user ? req.user.id : 0; // Pega o ID do usuário logado
+
+  if (!q) {
+    return res.status(200).json([]); // Retorna vazio se a busca for vazia
+  }
+
+  try {
+    const searchQuery = await pool.query(
+      `SELECT
+        nb.id, nb.name, nb.slug, nb.description,
+        (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
+        EXISTS (
+            SELECT 1 FROM board_members
+            WHERE board_id = nb.id AND user_id = $1
+        ) as is_member
+       FROM notice_boards nb
+       WHERE (nb.name ILIKE $2 OR nb.description ILIKE $2 OR nb.slug ILIKE $2)
+       LIMIT 10`,
+      [myUserId, `%${q}%`] // $1 é o myUserId, $2 é a query de busca
+    );
+    
+    res.status(200).json(searchQuery.rows);
+
+  } catch (err) {
+    console.error("Erro ao buscar quadros:", err.message);
+    res.status(500).json({ error: 'Erro interno do servidor.' });
   }
 });
 
