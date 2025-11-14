@@ -1,25 +1,35 @@
-// 1. Defina a porta do seu backend Node.js
-const PORTA = '3000'; // Ou 3333, 8080, etc. Use a porta que seu servidor está rodando.
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-/*
- * ESCOLHA UMA DAS OPÇÕES ABAIXO (DESCOMENTE A LINHA CORRETA)
- */
+// Substitua pelo IP que você está usando
+const SEU_IP_LOCAL = '192.168.15.37'; 
 
-// Opção 1: Se você está usando um EMULADOR ANDROID
-//const IP = '10.0.2.2';
+const api = axios.create({
+  // IMPORTANTE: Seu backend NÃO usa o prefixo /api.
+  // Então o baseURL deve ser APENAS o IP e a porta.
+  baseURL: `http://${SEU_IP_LOCAL}:3000` 
+});
 
-// Opção 2: Se você está usando um EMULADOR iOS
-// const IP = 'localhost';
+// --- A MÁGICA ACONTECE AQUI ---
+// Interceptor de Requisição: Roda ANTES de CADA chamada
+api.interceptors.request.use(
+  async (config) => {
+    // 1. Busca o token no armazenamento
+    // (Confira no seu AuthContext se a chave é mesmo '@token')
+    const token = await AsyncStorage.getItem('@token'); 
+    
+    // 2. Se o token existir, anexa ele no Header
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    // 3. Deixa a requisição continuar
+    return config;
+  },
+  (error) => {
+    // Em caso de erro ao preparar a requisição
+    return Promise.reject(error);
+  }
+);
 
-// Opção 3: Se você está usando seu CELULAR FÍSICO (Expo Go)
-// Você precisa descobrir o IP da sua máquina na rede Wi-Fi.
-// (Veja como descobrir abaixo)
-const IP = '192.168.15.17'; // <-- Exemplo! Troque pelo seu IP.
-
-// ----------------------------------------------------
-// A URL final que será usada no seu app
-export const API_URL = `http://${IP}:${PORTA}`;
-
-//DESCOBRIR IP
-//CMD
-//ipconfig
+export default api;

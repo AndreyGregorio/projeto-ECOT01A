@@ -26,13 +26,32 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-// --- Middleware de Autenticação ---
+// --- Middleware de Autenticação (PASSIVO) ---
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-  if (token == null) { return next(); } // Sem token, apenas continue
+  if (token == null) { return next(); } 
+
   jwt.verify(token, "seuSegredoJWT", (err, user) => {
-    if (err) { return next(); } // Token inválido, continue sem usuário
+    if (err) { return next(); } // Token inválido, mas continua
+    req.user = user; 
+    next();
+  });
+};
+
+// --- NOVO Middleware de Proteção (ATIVO) ---
+const protect = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  
+  if (token == null) { 
+    return res.status(401).json({ error: 'Autenticação necessária.' });
+  }
+
+  jwt.verify(token, "seuSegredoJWT", (err, user) => {
+    if (err) { 
+      return res.status(401).json({ error: 'Token inválido ou expirado.' });
+    }
     req.user = user; 
     next();
   });
@@ -752,14 +771,14 @@ app.get('/boards', verifyToken, async (req, res) => {
   try {
     const boards = await pool.query(
       `SELECT 
-        nb.*,
-        (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
-        EXISTS (
-          SELECT 1 FROM board_members 
-          WHERE board_id = nb.id AND user_id = $1
-        ) as is_member
-       FROM notice_boards nb
-       ORDER BY nb.name ASC`,
+         nb.*,
+         (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
+         EXISTS (
+           SELECT 1 FROM board_members 
+           WHERE board_id = nb.id AND user_id = $1
+         ) as is_member
+        FROM notice_boards nb
+        ORDER BY nb.name ASC`,
       [userId]
     );
     res.status(200).json(boards.rows);
@@ -856,17 +875,17 @@ app.get('/notices/feed', verifyToken, async (req, res) => {
   try {
     const feedQuery = await pool.query(
       `SELECT 
-        n.id, n.subject, n.content, n.file_url, n.file_type, n.created_at,
-        nb.name as board_name,
-        u.name as author_name, u.avatar_url as author_avatar,
-        n.user_id as author_id  -- <-- ADICIONE ESTA LINHA
-       FROM notices n
-       JOIN notice_boards nb ON n.board_id = nb.id
-       JOIN users u ON n.user_id = u.id
-       JOIN board_members bm ON nb.id = bm.board_id
-       WHERE bm.user_id = $1
-       ORDER BY n.created_at DESC
-       LIMIT 50`,
+         n.id, n.subject, n.content, n.file_url, n.file_type, n.created_at,
+         nb.name as board_name,
+         u.name as author_name, u.avatar_url as author_avatar,
+         n.user_id as author_id  -- <-- ADICIONE ESTA LINHA
+        FROM notices n
+        JOIN notice_boards nb ON n.board_id = nb.id
+        JOIN users u ON n.user_id = u.id
+        JOIN board_members bm ON nb.id = bm.board_id
+        WHERE bm.user_id = $1
+        ORDER BY n.created_at DESC
+        LIMIT 50`,
       [userId]
     );
 
@@ -959,15 +978,15 @@ app.get('/search/boards', verifyToken, async (req, res) => {
   try {
     const searchQuery = await pool.query(
       `SELECT
-        nb.id, nb.name, nb.slug, nb.description,
-        (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
-        EXISTS (
-            SELECT 1 FROM board_members
-            WHERE board_id = nb.id AND user_id = $1
-        ) as is_member
-       FROM notice_boards nb
-       WHERE (nb.name ILIKE $2 OR nb.description ILIKE $2 OR nb.slug ILIKE $2)
-       LIMIT 10`,
+         nb.id, nb.name, nb.slug, nb.description,
+         (SELECT COUNT(*) FROM board_members WHERE board_id = nb.id) as member_count,
+         EXISTS (
+             SELECT 1 FROM board_members
+             WHERE board_id = nb.id AND user_id = $1
+         ) as is_member
+        FROM notice_boards nb
+        WHERE (nb.name ILIKE $2 OR nb.description ILIKE $2 OR nb.slug ILIKE $2)
+        LIMIT 10`,
       [myUserId, `%${q}%`] // $1 é o myUserId, $2 é a query de busca
     );
     
@@ -978,6 +997,93 @@ app.get('/search/boards', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Erro interno do servidor.' });
   }
 });
+
+
+// ==========================================================
+// --- ROTAS DO CALENDÁRIO (CORRIGIDAS) ---
+// ==========================================================
+// --- Rota 28: CRIAR EVENTO (POST /events) ---
+// Use 'protect' em vez de 'verifyToken'
+app.post('/events', protect, async (req, res) => {
+  // O 'protect' GARANTE que 'req.user' existe.
+  const { title, description, start_time, end_time } = req.body;
+  const userId = req.user.id; 
+
+  try {
+    const newEvent = await pool.query(
+      `INSERT INTO events (title, description, start_time, end_time, category, user_id)
+       VALUES ($1, $2, $3, $4, 'USER_PRIVATE', $5)
+       RETURNING *`,
+      [title, description, start_time, end_time, userId]
+    );
+    res.status(201).json(newEvent.rows[0]);
+  } catch (err) {
+    console.error("Erro ao criar evento:", err.message);
+    res.status(500).json({ error: 'Erro ao criar evento' });
+  }
+});
+
+/// --- Rota 29: BUSCAR EVENTOS (GET /events) ---
+// --- MUDANÇA: 'protect' removido. Esta rota agora é PÚBLICA. ---
+app.get('/events', async (req, res) => {
+  const { month, year } = req.query;
+
+  if (!month || !year) {
+    return res.status(400).json({ error: 'Mês e ano são obrigatórios' });
+  }
+
+  try {
+    // --- MUDANÇA: A query SQL foi simplificada ---
+    // Ela não procura mais por 'user_id'
+    // Ela busca APENAS eventos públicos (ACADEMIC ou CAMPUS)
+    const events = await pool.query(
+      `SELECT * FROM events
+       WHERE
+         EXTRACT(MONTH FROM start_time) = $1 AND
+         EXTRACT(YEAR FROM start_time) = $2
+       AND
+         category IN ('ACADEMIC', 'CAMPUS')
+       ORDER BY start_time ASC`,
+      [month, year] // O $3 (userId) foi removido
+    );
+    
+    res.status(200).json(events.rows);
+    
+  } catch (err) {
+    console.error("Erro ao buscar eventos públicos:", err.message);
+    res.status(500).json({ error: 'Erro ao buscar eventos' });
+  }
+});
+
+// ==========================================================
+// --- Thunder Client ---
+// ==========================================================
+// Ela permite criar eventos ACADEMIC sem login.
+
+app.post('/temp/create-academic-event', async (req, res) => {
+  const { title, description, start_time, end_time } = req.body;
+
+  // Validação simples
+  if (!title || !start_time || !end_time) {
+    return res.status(400).json({ error: "Título, start_time e end_time são obrigatórios" });
+  }
+
+  try {
+    const newEvent = await pool.query(
+      `INSERT INTO events (title, description, start_time, end_time, category, user_id)
+       VALUES ($1, $2, $3, $4, 'ACADEMIC', NULL)
+       RETURNING *`,
+      [title, description, start_time, end_time]
+    );
+    // 201 = Created
+    res.status(201).json(newEvent.rows[0]); 
+
+  } catch (err) {
+    console.error("Erro ao criar evento de teste:", err.message);
+    res.status(500).json({ error: 'Erro ao criar evento' });
+  }
+});
+
 
 const PORT = 3000;
 

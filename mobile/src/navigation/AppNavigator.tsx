@@ -17,7 +17,8 @@ import EditProfileScreen from '@/screens/EditProfileScreen';
 import CommentsScreen from '@/screens/CommentsScreen';
 import SearchScreen from '@/screens/SearchScreen'; 
 import CreateNoticeScreen from '@/screens/CreateNoticeScreen'; 
-import EditNoticeScreen from '@/screens/EditNoticeScreen'; // <-- Importado corretamente
+import EditNoticeScreen from '@/screens/EditNoticeScreen'; 
+import AddEventScreen from '@/screens/AddEventScreen'; // <--- ADIÇÃO 1: Importar a nova tela
 
 const Stack = createNativeStackNavigator();
 
@@ -65,7 +66,7 @@ function AppStack() {
       <Stack.Group 
         screenOptions={{ 
           presentation: 'modal', // Faz a tela deslizar
-          headerShown: true      // Mostra o Header SÓ para este modal
+          headerShown: true       // Mostra o Header SÓ para este grupo
         }}
       >
         <Stack.Screen 
@@ -74,14 +75,19 @@ function AppStack() {
           options={{ title: 'Criar Novo Aviso' }} 
         />
         
-        {/* --- A CORREÇÃO ESTÁ AQUI --- */}
-        {/* O nome precisa ser "EditNoticeScreen" para bater com o navigation.navigate() */}
         <Stack.Screen 
-          name="EditNoticeScreen" // <-- Mudei de "EditNotice" para "EditNoticeScreen"
+          name="EditNoticeScreen" 
           component={EditNoticeScreen} 
-          options={{ title: 'Editar Aviso' }} // O 'headerShown: true' aqui é redundante, já que está no Group
+          options={{ title: 'Editar Aviso' }}
         />
-        {/* --- FIM DA CORREÇÃO --- */}
+        
+        {/* --- ADIÇÃO 2: Registrar a tela do calendário --- */}
+        <Stack.Screen 
+          name="AddEventScreen" 
+          component={AddEventScreen} 
+          options={{ title: 'Adicionar Evento' }} 
+        />
+
       </Stack.Group>
 
       

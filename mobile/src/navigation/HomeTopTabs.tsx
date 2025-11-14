@@ -11,8 +11,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Constants from 'expo-constants'; 
 import FeedScreen from '@/screens/HomeScreen'; 
+import CalendarScreen from '@/screens/CalendarScreen';
 
-const CalendarScreen = () => (
+const Calendar = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Tela de Calendário (WIP)</Text>
   </View>
@@ -92,7 +93,7 @@ export function HomeTopTabs() {
   return (
     <TopTab.Navigator
       tabBar={(props) => <CustomTopTabBar {...props} />}
-      style={{ paddingTop: Constants.statusBarHeight }}
+      style={{ paddingTop: Constants.statusBarHeight, backgroundColor: '#F0F2F5' }}
     >
       <TopTab.Screen 
         name="Para você" 
@@ -121,8 +122,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: '#FFFFFF',
+    paddingVertical: 4,
+    backgroundColor: '#F0F2F5',
   },
   headerTabs: {
     flexDirection: 'row',
