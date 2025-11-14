@@ -1,48 +1,41 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { jwtDecode } from 'jwt-decode';
 
-// Seu IP da API
-const API_URL = 'http://192.168.15.37:3000'; 
-
-// --- Tipos para o TSX ---
+const API_URL = 'http://192.168.15.37:3000';
 
 export interface User {
   id: string;
   name: string;
-  username: string; 
+  username: string;
   email: string;
-  avatar_url?: string | null; 
-  course?: string | null; 
+  avatar_url?: string | null;
+  course?: string | null;
   bio?: string | null;
 }
-
 interface AuthContextData {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  // --- MUDANÇA 1: Assinatura do 'login' atualizada ---
-  login: (identifier: string, password: string) => Promise<void>; // <-- Era 'email'
+  login: (identifier: string, password: string) => Promise<void>;
   register: (name: string, username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUserContext: (updatedUser: User) => void;
-  API_URL: string; 
+  API_URL: string;
 }
-
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
-
-export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
   useEffect(() => {
     const loadToken = async () => {
       try {
         const storedToken = await AsyncStorage.getItem('token');
         if (storedToken) {
           setToken(storedToken);
-          const decodedUser = jwtDecode<User>(storedToken); 
+          const decodedUser = jwtDecode<User>(storedToken);
           setUser(decodedUser);
         }
       } catch (e) {
@@ -53,35 +46,25 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
     };
     loadToken();
   }, []);
-
-  // --- Função 'login' ---
-  const login = async (identifier: string, password: string) => { // <-- Era 'email'
+  const login = async (identifier: string, password: string) => {
     try {
       const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier, password }), // <-- Envia 'identifier'
+        body: JSON.stringify({ identifier, password }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao logar');
       }
-      
-      const { token, user } = data; 
-
+      const { token, user } = data;
       await AsyncStorage.setItem('token', token);
       setToken(token);
-      setUser(user); 
-
+      setUser(user);
     } catch (error) {
-      console.error('Erro no login:', error);
-      throw error; 
+      throw error;
     }
   };
-
-  //Função de Cadastro
   const register = async (name: string, username: string, email: string, password: string) => {
     try {
       const response = await fetch(`${API_URL}/register`, {
@@ -89,23 +72,15 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, username, email, password }),
       });
-      
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || 'Erro ao cadastrar');
       }
-      
-      // Se o cadastro deu certo, faz o login automaticamente
-      await login(email, password); // <-- 'email' é um 'identifier' válido
-
+      await login(email, password);
     } catch (error) {
-      console.error('Erro no cadastro:', error);
-      throw error; 
+      throw error;
     }
   };
-
-  // Função de Logout 
   const logout = async () => {
     try {
       await AsyncStorage.removeItem('token');
@@ -115,31 +90,26 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({ children }
       console.error('Falha ao fazer logout', e);
     }
   };
-
-  // 5. Função de Atualização (Sem mudança)
   const updateUserContext = (updatedUser: User) => {
     setUser(updatedUser);
   };
-
   return (
-    <AuthContext.Provider 
-      value={{ 
-        user, 
-        token, 
-        isLoading, 
-        login, // <-- A função 'login' atualizada
-        register, 
-        logout, 
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        isLoading,
+        login,
+        register,
+        logout,
         updateUserContext,
-        API_URL 
+        API_URL
       }}
     >
       {children}
     </AuthContext.Provider>
   );
 };
-
-// Hook customizado (Sem mudança)
 export const useAuth = () => {
   return useContext(AuthContext);
 };

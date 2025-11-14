@@ -94,41 +94,47 @@ app.post('/register', async (req, res) => {
     }
 });
 
-// --- Rota 2: Login ---
 app.post('/login', async (req, res) => {
-    const { identifier, password } = req.body;
-    if (!identifier || !password) {
-      return res.status(400).json({ error: 'Identificador e senha são obrigatórios.' });
-    }
+    const { identifier, password } = req.body;
+    if (!identifier || !password) {
+      return res.status(400).json({ error: 'Identificador e senha são obrigatórios.' });
+    }
 
-    try {
-        const userQuery = await pool.query(
-          "SELECT * FROM users WHERE email = $1 OR username = $1", 
-          [identifier]
-        );
-        
-        if (userQuery.rows.length === 0) {
-            return res.status(401).json({ error: 'Credenciais inválidas.' });
-        }
-        
-        const user = userQuery.rows[0];
-        const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) {
-            return res.status(401).json({ error: 'Credenciais inválidas.' });
-        }
-        
-        const userPayload = {
-          id: user.id, name: user.name, email: user.email,
-          course: user.course, bio: user.bio, avatar_url: user.avatar_url,
-          username: user.username 
-        };
-        
-        const token = jwt.sign(userPayload, "seuSegredoJWT", { expiresIn: '90d' }); 
-        res.json({ token, user: userPayload });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: 'Erro interno do servidor.' });
-    }
+    try {
+        // MELHORIA: Use .toLowerCase() para ser consistente com o registro
+        const userQuery = await pool.query(
+          "SELECT * FROM users WHERE email = $1 OR username = $1", 
+          [identifier.toLowerCase()] 
+        );
+        
+        if (userQuery.rows.length === 0) {
+            // MUDANÇA 1: Erro específico para usuário não encontrado
+            // Usar 404 (Not Found) é semanticamente correto aqui.
+            return res.status(404).json({ error: 'Usuário não encontrado' });
+        }
+        
+        const user = userQuery.rows[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        
+        if (!isMatch) {
+            // MUDANÇA 2: Erro específico para senha incorreta
+            return res.status(401).json({ error: 'Senha incorreta' });
+        }
+        
+        // ... (O resto da sua lógica de sucesso está perfeita)
+        const userPayload = {
+          id: user.id, name: user.name, email: user.email,
+          course: user.course, bio: user.bio, avatar_url: user.avatar_url,
+          username: user.username 
+        };
+        
+        const token = jwt.sign(userPayload, "seuSegredoJWT", { expiresIn: '90d' }); 
+        res.json({ token, user: userPayload });
+    
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).json({ error: 'Erro interno do servidor.' });
+    }
 });
 
 // --- Rota 3: Atualizar Perfil ---
