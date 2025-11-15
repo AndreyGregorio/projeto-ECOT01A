@@ -1,5 +1,3 @@
-// src/screens/CalendarScreen.tsx (Versão ESTÁVEL com Calendar + FlatList)
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   View, 
@@ -7,15 +5,16 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert, 
-  FlatList, // Importamos a FlatList
+  FlatList, 
   ActivityIndicator
 } from 'react-native';
+
 import { Calendar, DateData, LocaleConfig } from 'react-native-calendars';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import  api  from '@/services/api'; 
 
-// Configura o calendário para Português (opcional, mas recomendado)
+// Configura o calendário para Português 
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
   monthNamesShort: ['Jan.','Fev.','Mar.','Abr.','Mai.','Jun.','Jul.','Ago.','Set.','Out.','Nov.','Dez.'],
@@ -25,7 +24,7 @@ LocaleConfig.locales['pt-br'] = {
 };
 LocaleConfig.defaultLocale = 'pt-br';
 
-// --- Interfaces (Sem mudança) ---
+// --- Interfaces ---
 interface ApiEvent {
   id: number;
   title: string;
@@ -51,10 +50,10 @@ const toDateString = (date: Date) => {
 
 // Cores
 const CATEGORY_COLORS = {
-  'ACADEMIC': '#FF3B30',   // Vermelho
-  'CAMPUS': '#007AFF',     // Azul
-  'USER_PRIVATE': '#34C759', // Verde
-  'default': '#8E8E93'     // Cinza
+  'ACADEMIC': '#FF3B30',   
+  'CAMPUS': '#007AFF',     
+  'USER_PRIVATE': '#34C759', 
+  'default': '#8E8E93'     
 };
 
 const CalendarScreen = () => {
@@ -172,7 +171,6 @@ const CalendarScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* O Calendário (que sabemos que funciona) */}
       <Calendar
         style={styles.calendar}
         onDayPress={onDayPress}
@@ -181,7 +179,7 @@ const CalendarScreen = () => {
         markingType={'multi-dot'} // Habilita múltiplas bolinhas
       />
       
-      {/* A Lista de Eventos (FlatList é estável) */}
+      {/* A Lista de Eventos */}
       <FlatList
         style={styles.list}
         data={eventsForSelectedDay}
@@ -216,12 +214,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
   },
   calendar: {
-    // Estilos para o calendário, se necessário
+    // Estilos para o calendário
     borderBottomWidth: 1,
     borderColor: '#e0e0e0',
   },
   list: {
-    flex: 1, // Ocupa o resto do espaço
+    flex: 1, 
   },
   fab: {
     position: 'absolute',

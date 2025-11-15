@@ -11,15 +11,15 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, Feather } from '@expo/vector-icons'; // --- MODIFICADO: Adicionado Feather
+import { Ionicons, Feather } from '@expo/vector-icons'; 
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 
-// --- NOVO: Importa o navegador de abas ---
+// --- Importa o navegador de abas ---
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 
-// --- (Seu hook useDebounce, sem mudanças) ---
+// --- hook useDebounce ---
 function useDebounce(value: string, delay: number): string {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -42,16 +42,16 @@ interface UserSearchResult {
   is_following_by_me: boolean;
 }
 
-// --- NOVO: Tipo para o resultado dos Quadros ---
+// --- Tipo para o resultado dos Quadros ---
 interface BoardSearchResult {
-  id: string; // É UUID
+  id: string; // UUID
   name: string;
   description: string;
   member_count: string;
   is_member: boolean;
 }
 
-// --- (Componente UserResultItem, sem mudanças) ---
+// --- Componente UserResultItem ---
 const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
   const { API_URL, token } = useAuth();
   const navigation = useNavigation<any>();
@@ -131,7 +131,7 @@ const UserResultItem: React.FC<{ user: UserSearchResult }> = ({ user }) => {
   );
 };
 
-// --- NOVO: Componente para o Item de Quadro (Comunidade) ---
+// --- Componente para o Item de Quadro (Comunidade) ---
 // (Lógica de "Entrar/Sair" copiada do AllBoardsScreen)
 const BoardResultItem: React.FC<{ board: BoardSearchResult }> = ({ board }) => {
   const { API_URL, token } = useAuth();
@@ -146,7 +146,7 @@ const BoardResultItem: React.FC<{ board: BoardSearchResult }> = ({ board }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Falha na operação.');
-      setIsMember(!isMember); // Atualiza o estado local
+      setIsMember(!isMember); 
     } catch (error: any) {
       Alert.alert('Erro', error.message);
     } finally {
@@ -165,7 +165,7 @@ const BoardResultItem: React.FC<{ board: BoardSearchResult }> = ({ board }) => {
       </View>
       <TouchableOpacity
         style={[
-          styles.followButton, // Reutilizando o estilo base
+          styles.followButton, 
           isMember ? styles.unfollowButton : styles.joinButtonActive, // Estilo "join"
         ]}
         onPress={handleToggleJoin}
@@ -189,7 +189,7 @@ const BoardResultItem: React.FC<{ board: BoardSearchResult }> = ({ board }) => {
 };
 
 
-// --- NOVO: Componente-Filho 1 (Lista de Usuários) ---
+// --- Componente-Filho 1 (Lista de Usuários) ---
 const UserSearchList: React.FC<{ query: string }> = ({ query }) => {
   const { API_URL, token } = useAuth();
   const [results, setResults] = useState<UserSearchResult[]>([]);
@@ -241,13 +241,13 @@ const UserSearchList: React.FC<{ query: string }> = ({ query }) => {
   );
 };
 
-// --- NOVO: Componente-Filho 2 (Lista de Quadros) ---
+// --- Componente-Filho 2 (Lista de Quadros) ---
 const BoardSearchList: React.FC<{ query: string }> = ({ query }) => {
   const { API_URL, token } = useAuth();
   const [results, setResults] = useState<BoardSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Função de busca MODIFICADA
+  // Função de busca 
   const searchBoards = async (searchQuery: string) => {
     setLoading(true);
     try {
@@ -295,16 +295,16 @@ const BoardSearchList: React.FC<{ query: string }> = ({ query }) => {
 };
 
 
-// --- NOVO: Cria o Navegador de Abas ---
+// --- Cria o Navegador de Abas ---
 const Tab = createMaterialTopTabNavigator();
 
-// --- MODIFICADO: Tela Principal (agora é o "Pai") ---
+// --- Tela Principal ---
 export default function SearchScreen() {
   const navigation = useNavigation();
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDebounce(query, 300); // Debounce fica no Pai
+  const debouncedQuery = useDebounce(query, 300); 
 
-  // Foco no input (sem mudança)
+  // Foco no input 
   const textInputRef = React.useRef<TextInput>(null);
   useFocusEffect(useCallback(() => {
     textInputRef.current?.focus();
@@ -319,20 +319,16 @@ export default function SearchScreen() {
         <TextInput
           ref={textInputRef}
           style={styles.searchInput}
-          placeholder="Buscar usuários ou quadros..." // Placeholder atualizado
+          placeholder="Buscar usuários ou quadros..." 
           value={query}
           onChangeText={setQuery}
           autoCapitalize="none"
           autoCorrect={false}
           returnKeyType="search"
         />
-        {/* O ActivityIndicator foi movido para dentro das abas */}
       </View>
 
-      {/* --- NOVO: Renderiza o Navegador de Abas --- */}
-      {/* Usamos o padrão "função como filho" para passar a 'query' 
-        atualizada para as telas das abas.
-      */}
+      {/* --- Renderiza o Navegador de Abas --- */}
       <Tab.Navigator
         screenOptions={{
           tabBarLabelStyle: { fontWeight: 'bold' },
@@ -350,7 +346,7 @@ export default function SearchScreen() {
   );
 }
 
-// --- MODIFICADO: Estilos ---
+// --- Estilos ---
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
@@ -364,7 +360,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
-    backgroundColor: 'white', // Garante o fundo
+    backgroundColor: 'white',
   },
   searchInput: {
     flex: 1,
@@ -377,7 +373,7 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    paddingTop: 60, // Menos padding
+    paddingTop: 60, 
     alignItems: 'center',
     backgroundColor: 'white',
   },
@@ -400,7 +396,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEE',
     marginRight: 12,
   },
-  // --- NOVO: Estilo para o avatar do Quadro ---
+  // --- Estilo para o avatar do Quadro ---
   boardAvatar: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -417,7 +413,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  // Estilos de Botão (Reutilizados)
+  // Estilos de Botão 
   followButton: {
     paddingVertical: 6,
     paddingHorizontal: 16,
@@ -427,11 +423,11 @@ const styles = StyleSheet.create({
     minWidth: 90,
   },
   followButtonActive: {
-    backgroundColor: '#007AFF', // Azul
+    backgroundColor: '#007AFF', 
   },
-  // --- NOVO: Estilo para o botão "Entrar" (copiado do "Seguir") ---
+  // ---  Estilo para o botão "Entrar" (copiado do "Seguir") ---
   joinButtonActive: {
-    backgroundColor: '#000', // Preto
+    backgroundColor: '#000', 
   },
   unfollowButton: {
     backgroundColor: 'transparent',

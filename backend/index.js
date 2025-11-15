@@ -8,7 +8,7 @@ const path = require('path');
 
 const app = express();
 
-// --- Middlewares (Configurações) ---
+// --- Configurações ---
 app.use(cors()); 
 app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -26,7 +26,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-// --- Middleware de Autenticação (PASSIVO) ---
+// --- Middleware de Autenticação  ---
 const verifyToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -39,7 +39,7 @@ const verifyToken = (req, res, next) => {
   });
 };
 
-// --- NOVO Middleware de Proteção (ATIVO) ---
+// --- Middleware de Proteção ---
 const protect = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -101,15 +101,12 @@ app.post('/login', async (req, res) => {
     }
 
     try {
-        // MELHORIA: Use .toLowerCase() para ser consistente com o registro
         const userQuery = await pool.query(
           "SELECT * FROM users WHERE email = $1 OR username = $1", 
           [identifier.toLowerCase()] 
         );
         
         if (userQuery.rows.length === 0) {
-            // MUDANÇA 1: Erro específico para usuário não encontrado
-            // Usar 404 (Not Found) é semanticamente correto aqui.
             return res.status(404).json({ error: 'Usuário não encontrado' });
         }
         
@@ -117,11 +114,8 @@ app.post('/login', async (req, res) => {
         const isMatch = await bcrypt.compare(password, user.password_hash);
         
         if (!isMatch) {
-            // MUDANÇA 2: Erro específico para senha incorreta
             return res.status(401).json({ error: 'Senha incorreta' });
         }
-        
-        // ... (O resto da sua lógica de sucesso está perfeita)
         const userPayload = {
           id: user.id, name: user.name, email: user.email,
           course: user.course, bio: user.bio, avatar_url: user.avatar_url,
@@ -463,7 +457,7 @@ app.post('/posts/:id/comments', verifyToken, async (req, res) => {
 
 
 // --- Rota 12: BUSCAR Notificações  ---
-app.get('/notifications', verifyToken, async (req, res) => {
+/*{app.get('/notifications', verifyToken, async (req, res) => {
   // ... (código original sem mudança)
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -486,7 +480,7 @@ app.get('/notifications', verifyToken, async (req, res) => {
     console.error("Erro ao buscar notificações:", err.message);
     res.status(500).json({ error: 'Erro interno do servidor.' });
   }
-});
+});}*/
 
 
 // ==========================================================
@@ -751,9 +745,8 @@ app.get('/posts/user/id/:id', verifyToken, async (req, res) => {
 // ==========================================================
 
 // --- Rota 20: CRIAR UM QUADRO DE AVISOS (Ferramenta Admin/Dev) ---
-// Use isso via Postman/Insomnia para criar os cursos: "Engenharia", "Direito", etc.
 app.post('/boards', verifyToken, async (req, res) => {
-  // Idealmente, verificar se o usuário é admin. Aqui deixarei aberto para você testar.
+  // verificar se o usuário é admin.
   const { name, description, slug } = req.body;
   
   try {
@@ -770,7 +763,7 @@ app.post('/boards', verifyToken, async (req, res) => {
   }
 });
 
-// --- Rota 21: LISTAR TODOS OS QUADROS (Para a aba "Quadros Disponíveis") ---
+// --- Rota 21: LISTAR TODOS OS QUADROS  ---
 app.get('/boards', verifyToken, async (req, res) => {
   const userId = req.user.id;
 
@@ -794,7 +787,7 @@ app.get('/boards', verifyToken, async (req, res) => {
   }
 });
 
-// --- Rota 22: ENTRAR/SAIR DE UM QUADRO (Toggle Join) ---
+// --- Rota 22: ENTRAR/SAIR DE UM QUADRO  ---
 app.post('/boards/:id/toggle-join', verifyToken, async (req, res) => {
   const boardId = req.params.id; // UUID (String)
   const userId = req.user.id;
@@ -832,7 +825,7 @@ app.post('/boards/:id/toggle-join', verifyToken, async (req, res) => {
 app.post('/boards/:id/notices', verifyToken, upload.single('file'), async (req, res) => {
   const boardId = req.params.id;
   const userId = req.user.id;
-  // O campo 'subject' é a matéria (ex: Cálculo 1) ou "Geral"
+
   const { subject, content } = req.body; 
   
   if (!content) {
@@ -866,7 +859,6 @@ app.post('/boards/:id/notices', verifyToken, upload.single('file'), async (req, 
 
     res.status(201).json(newNotice.rows[0]);
 
-    // Opcional: Criar notificações para todos do grupo (Cuidado com performance se o grupo for grande)
   } catch (err) {
     console.error("Erro ao postar aviso:", err.message);
     res.status(500).json({ error: 'Erro interno.' });
@@ -937,7 +929,7 @@ app.delete('/notices/:id', verifyToken, async (req, res) => {
 });
 
 // --- Rota 26: EDITAR UM AVISO ---
-// (Versão simples, só edita texto. Editar arquivos é bem mais complexo)
+// Versão simples, só edita texto. 
 app.put('/notices/:id', verifyToken, async (req, res) => {
   if (!req.user) {
     return res.status(401).json({ error: 'Autenticação necessária.' });
@@ -1006,10 +998,9 @@ app.get('/search/boards', verifyToken, async (req, res) => {
 
 
 // ==========================================================
-// --- ROTAS DO CALENDÁRIO (CORRIGIDAS) ---
+// --- ROTAS DO CALENDÁRIO  ---
 // ==========================================================
-// --- Rota 28: CRIAR EVENTO (POST /events) ---
-// Use 'protect' em vez de 'verifyToken'
+
 app.post('/events', protect, async (req, res) => {
   // O 'protect' GARANTE que 'req.user' existe.
   const { title, description, start_time, end_time } = req.body;
@@ -1030,7 +1021,6 @@ app.post('/events', protect, async (req, res) => {
 });
 
 /// --- Rota 29: BUSCAR EVENTOS (GET /events) ---
-// --- MUDANÇA: 'protect' removido. Esta rota agora é PÚBLICA. ---
 app.get('/events', async (req, res) => {
   const { month, year } = req.query;
 
@@ -1039,9 +1029,6 @@ app.get('/events', async (req, res) => {
   }
 
   try {
-    // --- MUDANÇA: A query SQL foi simplificada ---
-    // Ela não procura mais por 'user_id'
-    // Ela busca APENAS eventos públicos (ACADEMIC ou CAMPUS)
     const events = await pool.query(
       `SELECT * FROM events
        WHERE

@@ -30,10 +30,10 @@ interface Comment {
   author_avatar: string | null;
 }
 
-// --- MUDANÇA 1: O componente agora aceita 'api_url' ---
+// --- O componente agora aceita 'api_url' ---
 const CommentItem: React.FC<{ comment: Comment; api_url: string }> = ({ comment, api_url }) => {
   
-  // --- MUDANÇA 2: Usamos a 'api_url' para construir o link completo ---
+  // --- 'api_url' para construir o link completo ---
   const avatarSource = comment.author_avatar ? { uri: api_url + comment.author_avatar } : null;
   
   return (
@@ -55,7 +55,7 @@ const CommentItem: React.FC<{ comment: Comment; api_url: string }> = ({ comment,
 export default function CommentsScreen() {
   const route = useRoute();
   const navigation = useNavigation();
-  const { API_URL, token } = useAuth(); // <-- A URL que precisamos
+  const { API_URL, token } = useAuth(); 
   
   const { postId } = route.params as { postId: number }; 
 
@@ -64,8 +64,8 @@ export default function CommentsScreen() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false); 
 
-  // --- Funções (Sem mudanças) ---
-  const fetchComments = async () => { /* ... (código sem mudança) ... */ 
+  // --- Funções  ---
+  const fetchComments = async () => {
     setLoading(true);
     try {
       const response = await fetch(`${API_URL}/posts/${postId}/comments`, {
@@ -80,7 +80,7 @@ export default function CommentsScreen() {
       setLoading(false);
     }
   };
-  const handlePostComment = async () => { /* ... (código sem mudança) ... */ 
+  const handlePostComment = async () => { 
     if (newComment.trim() === '') return; 
     setPosting(true);
     try {
@@ -136,7 +136,7 @@ export default function CommentsScreen() {
         ) : (
           <FlatList
             data={comments}
-            // --- MUDANÇA 3: Passamos a API_URL para o CommentItem ---
+            // --- API_URL para o CommentItem ---
             renderItem={({ item }) => <CommentItem comment={item} api_url={API_URL} />}
             keyExtractor={(item) => item.id.toString()}
             style={styles.list}
@@ -172,7 +172,7 @@ export default function CommentsScreen() {
   );
 }
 
-// --- Estilos (Sem mudanças) ---
+// --- Estilos  ---
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#FFFFFF' },
   container: { flex: 1 },

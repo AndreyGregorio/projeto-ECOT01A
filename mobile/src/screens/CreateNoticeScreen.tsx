@@ -12,7 +12,6 @@ type Board = {
   id: string;
   name: string;
   is_member: boolean;
-  // ...outros campos se houver
 };
 
 // O que vamos anexar
@@ -49,7 +48,7 @@ export default function CreateNoticeScreen() {
           // Filtra só os quadros que o usuário é membro
           const userIsMemberOf = data.filter(board => board.is_member);
           setMyBoards(userIsMemberOf);
-          // Opcional: pré-seleciona o primeiro quadro da lista
+          // pré-seleciona o primeiro quadro da lista
           if (userIsMemberOf.length > 0) {
             setSelectedBoardId(userIsMemberOf[0].id);
           }
@@ -129,7 +128,6 @@ export default function CreateNoticeScreen() {
 
     // Anexar o arquivo (se existir)
     if (attachment) {
-      // O `any` aqui é um truque necessário para o `FormData` do React Native
       formData.append('file', {
         uri: attachment.uri,
         name: attachment.name,
@@ -142,7 +140,6 @@ export default function CreateNoticeScreen() {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
-          // 'Content-Type': 'multipart/form-data' // O fetch faz isso sozinho quando vê FormData
         },
         body: formData,
       });
@@ -195,7 +192,7 @@ export default function CreateNoticeScreen() {
       <Text style={styles.label}>Matéria (Opcional):</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: Cálculo 1 (ou deixe em branco para 'Geral')"
+        placeholder="Ex: Cálculo A (ou deixe em branco para 'Geral')"
         value={subject}
         onChangeText={setSubject}
       />
@@ -282,7 +279,7 @@ const styles = StyleSheet.create({
   },
   textArea: {
     height: 150,
-    textAlignVertical: 'top', // Para Android
+    textAlignVertical: 'top', 
   },
   attachRow: {
     flexDirection: 'row',
@@ -323,7 +320,7 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginTop: 32,
-    marginBottom: 40, // Espaço para o fim da rolagem
+    marginBottom: 40, 
   },
   submitButtonDisabled: {
     backgroundColor: '#888',

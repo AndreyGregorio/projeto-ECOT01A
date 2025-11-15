@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import api from '@/services/api'; // Seu arquivo Axios
+import api from '@/services/api'; 
 
 // Um botão reutilizável
 const CustomButton = ({ title, onPress, style }: any) => (
@@ -60,8 +60,6 @@ const AddEventScreen = () => {
       'Em Breve',
       'Funcionalidade disponível em breve.'
     );
-    
-    // NOTA: Removemos toda a lógica anterior (validação, setIsLoading, try/catch, api.post)
   };
 
   // Formata a data e hora para mostrar no botão
@@ -105,7 +103,7 @@ const AddEventScreen = () => {
       {showStartPicker && (
         <DateTimePicker
           value={startTime}
-          mode="datetime" // Mostra data E hora
+          mode="datetime" 
           display="default"
           onChange={onChangeStartTime}
         />
@@ -122,7 +120,7 @@ const AddEventScreen = () => {
           mode="datetime"
           display="default"
           onChange={onChangeEndTime}
-          minimumDate={startTime} // Não deixa selecionar data/hora de término antes do início
+          minimumDate={startTime} 
         />
       )}
 
@@ -160,7 +158,7 @@ const styles = StyleSheet.create({
   },
   multilineInput: {
     height: 80,
-    textAlignVertical: 'top', // Para Android
+    textAlignVertical: 'top', 
   },
   dateButton: {
     backgroundColor: '#f5f5f5',
@@ -176,7 +174,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     alignItems: 'center',
-    marginTop: 30, // Mais espaço acima
+    marginTop: 30, 
   },
   buttonText: {
     color: '#fff',

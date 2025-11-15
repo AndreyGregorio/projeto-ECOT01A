@@ -9,6 +9,7 @@ import {
   Alert,
   FlatList,
   RefreshControl,
+  Platform,
 } from 'react-native';
 
 import {
@@ -356,12 +357,19 @@ const styles = StyleSheet.create({
     backgroundColor: '#EEE',
   },
   displayContainer: {
-    width: '100%',
-    alignItems: 'center',
-    paddingHorizontal: 16,
+    width: '100%',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  name: { 
+    // Usamos Platform.select para escolher o estilo
+    fontSize: Platform.OS === 'android' ? 20 : 24, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginBottom: 2,
+    textAlign: 'center' // Mantém centralizado em ambos
   },
-  name: { fontSize: 24, fontWeight: 'bold', color: '#333', marginBottom: 2 },
-  username: { fontSize: 16, color: '#666', marginBottom: 8 }, 
+  username: { fontSize: 16, color: '#666', marginBottom: 8 },
   bio: {
     fontSize: 14,
     color: '#666',

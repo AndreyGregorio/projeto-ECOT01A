@@ -1,4 +1,3 @@
-// @/screens/RegisterScreen.tsx (ATUALIZADO)
 import React, { useState } from 'react';
 import {
   View,
@@ -35,7 +34,7 @@ type RegisterScreenNavigationProp = NativeStackNavigationProp<
 
 const RegisterScreen: React.FC = () => {
   const [nome, setNome] = useState('');
-  const [username, setUsername] = useState(''); // <-- 1. ADICIONADO
+  const [username, setUsername] = useState(''); 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false); 
@@ -44,7 +43,7 @@ const RegisterScreen: React.FC = () => {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
 
   const handleRegister = async () => {
-    // 2. Validação atualizada
+    //  Validação atualizada
     if (!nome.trim() || !username.trim() || !email.trim() || !senha.trim()) {
       Alert.alert('Erro', 'Por favor, preencha todos os campos.');
       return;
@@ -53,7 +52,7 @@ const RegisterScreen: React.FC = () => {
     setIsSubmitting(true); 
     
     try {
-      // 3. Chamada de 'register' atualizada (com username)
+      // Chamada de 'register' com username
       await register(nome, username.toLowerCase(), email, senha);
       // Se não deu erro, o login foi feito e o AuthProvider cuidou de tudo
       // (Não precisa mais navegar para o Login, o usuário já está logado)
@@ -98,14 +97,14 @@ const RegisterScreen: React.FC = () => {
               returnKeyType="next"
               editable={!isSubmitting} 
             />
-            {/* --- 4. CAMPO DE USERNAME ADICIONADO --- */}
+            {/* --- CAMPO DE USERNAME --- */}
             <TextInput
               style={styles.input}
               placeholder="@username"
               placeholderTextColor="#888"
               value={username}
               onChangeText={setUsername}
-              autoCapitalize="none" // NUNCA capitalizar usernames
+              autoCapitalize="none" 
               returnKeyType="next"
               editable={!isSubmitting} 
             />
@@ -161,7 +160,7 @@ const RegisterScreen: React.FC = () => {
   );
 };
 
-// ... (seus estilos de RegisterScreen)
+//Estilos
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,

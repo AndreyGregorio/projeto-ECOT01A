@@ -8,8 +8,7 @@ import ProfileScreen from '@/screens/ProfileScreen';
 import CreatePostScreen from '@/screens/CreatePostScreen'; 
 import { NoticesTopTabs } from '@/navigation/NoticesTopTabs'; 
 
-// --- Placeholder para a futura tela de Avisos ---
-// Em breve vamos substituir isso pelo NoticesTopTabs
+
 const NoticesScreen = () => (
   <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
     <Text>Quadro de Avisos</Text>
@@ -64,7 +63,6 @@ export function MainBottomTabs() {
         options={{ title: 'Feed' }} 
       />
       
-      {/* MUDANÇA AQUI: De Groups para Notices */}
       <BottomTab.Screen 
         name="Notices" 
         component={NoticesTopTabs} 

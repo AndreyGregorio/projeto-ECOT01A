@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'; // ERRO 1,2,3 CORRIGIDO: Removido o ponto final '.' extra
+import React, { useEffect, useState } from 'react'; 
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +44,6 @@ export default function AllBoardsScreen() {
 
   // Função para Entrar/Sair
   const handleToggleJoin = async (boardId: string, isMember: boolean) => {
-    // ERROS 4 e 5 CORRIGIDOS: Adicionada tipagem explícita
     setBoards((currentBoards: Board[]) => 
       currentBoards.map((board: Board) => 
         board.id === boardId 

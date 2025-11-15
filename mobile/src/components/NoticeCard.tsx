@@ -99,7 +99,6 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({
   // A Lógica de "Dono" (number === number)
   const isOwner = notice.author_id === currentUserId;
 
-  // --- AQUI ESTÁ A MUDANÇA QUE VOCÊ QUERIA ---
   // Função para mostrar o Alerta de Opções (COM O BOTÃO EDITAR)
   const showOptions = () => {
     Alert.alert(
@@ -119,7 +118,6 @@ export const NoticeCard: React.FC<NoticeCardProps> = ({
       ]
     );
   };
-  // --- FIM DA MUDANÇA ---
 
   return (
     <View style={styles.card}>

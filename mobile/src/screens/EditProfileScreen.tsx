@@ -39,7 +39,7 @@ export default function EditProfileScreen() {
   const [loading, setLoading] = useState(false); 
   const [isUploading, setIsUploading] = useState(false);
   
-  // --- 2. ATUALIZAR O ESTADO INICIAL ---
+  // --- ATUALIZAR O ESTADO INICIAL ---
   const [formData, setFormData] = useState<ProfileFormData>({
     name: user?.name || '',
     username: user?.username || '', 

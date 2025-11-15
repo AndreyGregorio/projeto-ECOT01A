@@ -1,6 +1,6 @@
 import React from 'react';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
-import { SafeAreaView } from 'react-native-safe-area-context'; // <-- 1. IMPORTE AQUI
+import { SafeAreaView } from 'react-native-safe-area-context'; 
 import AllBoardsScreen from '@/screens/AllBoardsScreen';
 import MyNoticesScreen from '@/screens/MyNoticesScreen';
 
@@ -8,8 +8,6 @@ const Tab = createMaterialTopTabNavigator();
 
 export function NoticesTopTabs() {
   return (
-    // 2. ENVOLVA O NAVEGADOR COM A SAFEARIAVIEW
-    // Damos um flex: 1 e uma cor de fundo para evitar "pulos"
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FFF' }}> 
       <Tab.Navigator
         screenOptions={{

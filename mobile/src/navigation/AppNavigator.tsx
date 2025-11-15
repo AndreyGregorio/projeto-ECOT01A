@@ -18,11 +18,11 @@ import CommentsScreen from '@/screens/CommentsScreen';
 import SearchScreen from '@/screens/SearchScreen'; 
 import CreateNoticeScreen from '@/screens/CreateNoticeScreen'; 
 import EditNoticeScreen from '@/screens/EditNoticeScreen'; 
-import AddEventScreen from '@/screens/AddEventScreen'; // <--- ADIÇÃO 1: Importar a nova tela
+import AddEventScreen from '@/screens/AddEventScreen'; 
 
 const Stack = createNativeStackNavigator();
 
-// AuthStack (Sem mudanças)
+// AuthStack 
 function AuthStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -32,7 +32,7 @@ function AuthStack() {
   );
 }
 
-// AppStack (COM MUDANÇAS)
+// AppStack 
 function AppStack() {
   return (
     // O seu Navigator já esconde o Header por padrão, o que é perfeito
@@ -81,7 +81,6 @@ function AppStack() {
           options={{ title: 'Editar Aviso' }}
         />
         
-        {/* --- ADIÇÃO 2: Registrar a tela do calendário --- */}
         <Stack.Screen 
           name="AddEventScreen" 
           component={AddEventScreen} 

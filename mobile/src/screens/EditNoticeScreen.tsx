@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
-import { Notice } from '@/components/NoticeCard'; // Vamos reusar o tipo do NoticeCard
+import { Notice } from '@/components/NoticeCard'; 
 
-// Definimos o tipo de parâmetro que esperamos
+//  tipo de parâmetro
 type EditNoticeRouteParams = {
   notice: Notice;
 };
@@ -99,7 +99,7 @@ export default function EditNoticeScreen() {
   );
 }
 
-// Estilos (copiados do CreateNotice, com uma adição)
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  note: { // <-- Novo estilo
+  note: { 
     fontSize: 12,
     color: '#666',
     textAlign: 'center',

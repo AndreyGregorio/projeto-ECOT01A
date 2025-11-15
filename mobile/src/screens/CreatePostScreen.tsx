@@ -93,11 +93,11 @@ export default function CreatePostScreen() {
     setLoading(true);
     const formData = new FormData();
 
-    // 1. Adicionar o texto e o usuário
+    // Adicionar o texto e o usuário
     formData.append('content', content);
     formData.append('userId', user.id.toString());
 
-    // 2. Adicionar a imagem (se existir)
+    // Adicionar a imagem (se existir)
     if (imageUri) {
       const filename = imageUri.split('/').pop();
       const match = /\.(\w+)$/.exec(filename!);
@@ -106,7 +106,7 @@ export default function CreatePostScreen() {
     }
 
     try {
-      // 3. Enviar para a nova rota /posts
+      // Enviar para a nova rota /posts
       const response = await fetch(`${API_URL}/posts`, {
         method: 'POST',
         body: formData,

@@ -2,15 +2,15 @@ import React, { useState, useCallback } from 'react';
 import { 
   View, Text, FlatList, StyleSheet, 
   ActivityIndicator, RefreshControl, TouchableOpacity,
-  Alert // <-- 1. IMPORTAR O ALERT
+  Alert 
 } from 'react-native';
+
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { useAuth } from '@/contexts/AuthContext';
 import { NoticeCard, Notice } from '@/components/NoticeCard'; 
 import { Feather } from '@expo/vector-icons'; 
 
 export default function MyNoticesScreen() {
-  // 2. PRECISAMOS DO 'user' AGORA, NÃO SÓ DO TOKEN
   const { token, API_URL, user } = useAuth(); 
   const [notices, setNotices] = useState<Notice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function MyNoticesScreen() {
     navigation.navigate('CreateNotice'); 
   };
 
-  // --- 3. FUNÇÃO DE DELETAR ---
+  // --- FUNÇÃO DE DELETAR ---
   const handleDeleteNotice = (noticeId: string) => {
     // Confirmação final
     Alert.alert(
@@ -71,7 +71,7 @@ export default function MyNoticesScreen() {
     );
   };
 
-  // --- 4. A LÓGICA DO FETCH DE DELETE ---
+  // --- A LÓGICA DO FETCH DE DELETE ---
   const performDelete = async (noticeId: string) => {
     try {
       const response = await fetch(`${API_URL}/notices/${noticeId}`, {
@@ -79,8 +79,7 @@ export default function MyNoticesScreen() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      if (response.ok) { // status 204
-        // Atualização Otimista: Remove o post da lista na tela
+      if (response.ok) { 
         setNotices(currentNotices => 
           currentNotices.filter(notice => notice.id !== noticeId)
         );
@@ -114,7 +113,7 @@ export default function MyNoticesScreen() {
         data={notices}
         keyExtractor={(item) => item.id}
         
-        // --- 6. ATUALIZANDO O RENDER ITEM ---
+        // --- ATUALIZANDO O RENDER ITEM ---
         renderItem={({ item }) => (
           <NoticeCard 
             notice={item} 
@@ -124,7 +123,6 @@ export default function MyNoticesScreen() {
             onEdit={handleEditNotice} // Passa a função de editar
           /> 
         )}
-        // --- FIM DA MUDANÇA ---
 
         contentContainerStyle={{ padding: 16 }}
         ListEmptyComponent={(
@@ -145,7 +143,7 @@ export default function MyNoticesScreen() {
   );
 }
 
-// ... (Styles sem mudança)
+// Estilos
 const styles = StyleSheet.create({
   container: {
     flex: 1,

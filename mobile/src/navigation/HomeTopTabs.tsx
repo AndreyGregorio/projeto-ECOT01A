@@ -58,6 +58,7 @@ const CustomTopTabBar = (props: MaterialTopTabBarProps) => {
             <TouchableOpacity
               key={route.key}
               onPress={() => navigation.navigate(route.name)}
+
               //padding diferente para o ícone
               style={[
                 styles.tabButton, 
@@ -127,17 +128,16 @@ const styles = StyleSheet.create({
   },
   headerTabs: {
     flexDirection: 'row',
-    gap: 24, // Espaçamento entre as abas
+    gap: 24, 
     alignItems: 'center',
-    flex: 1, // Ocupa o espaço disponível
-    // Removemos o 'justifyContent: center' e o 'transform'
+    flex: 1, 
   },
   tabButton: {
     paddingBottom: 10,
     position: 'relative',
   },
   tabButtonIcon: {
-    paddingBottom: 10, // Mesmo padding, mas sem o indicador
+    paddingBottom: 10, 
   },
   headerTab: {
     fontWeight: '600',

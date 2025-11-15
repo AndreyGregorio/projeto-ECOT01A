@@ -21,7 +21,7 @@ import {
 } from 'react-native-safe-area-context';
 
 
-import { useAuth } from '@/contexts/AuthContext'; // <-- Importado aqui
+import { useAuth } from '@/contexts/AuthContext'; 
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons'; 
 
@@ -78,7 +78,7 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
         {authorAvatarSource ? (
           <Image source={authorAvatarSource} style={styles.postAvatar} />
         ) : (
-          <View style={styles.postAvatar} /> // Fallback para avatar
+          <View style={styles.postAvatar} /> 
         )}
         <View style={styles.postAutorContainer}>
           <Text style={styles.postAutor}>{post.author_name}</Text>
