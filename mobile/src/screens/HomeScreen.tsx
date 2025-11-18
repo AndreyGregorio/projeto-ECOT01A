@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -9,21 +9,22 @@ import {
   RefreshControl,
   Alert,
   StatusBar,
-  TouchableOpacity 
+  TouchableOpacity,
+  Dimensions, 
+  Modal,      
+  Pressable   
 } from 'react-native';
-
 
 import {
   SafeAreaView,
-  SafeAreaProvider,
-  SafeAreaInsetsContext,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-
 
 import { useAuth } from '@/contexts/AuthContext'; 
 import { useFocusEffect, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons'; 
+
+const { width } = Dimensions.get('window');
+const POST_IMAGE_MAX_WIDTH = width - 32; 
 
 export interface Post {
   id: number;
@@ -39,14 +40,17 @@ export interface Post {
   total_comments: number; 
 }
 
+// --- Componente PostItem ---
 export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => void }> = ({ post, onToggleLike }) => {
   
   const { API_URL } = useAuth();
+  const navigation = useNavigation<any>();
+
+  const [imageHeight, setImageHeight] = useState<number | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   const getSafeImageUri = (path: string | null | undefined) => {
-    if (!path) {
-      return null;
-    }
+    if (!path) return null;
     if (path.startsWith('http://') || path.startsWith('https://')) {
       return { uri: path };
     }
@@ -59,18 +63,28 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
   const authorAvatarSource = getSafeImageUri(post.author_avatar);
   const postImageSource = getSafeImageUri(post.image_url);
 
+  // Calcula a altura dinâmica para a imagem não ser cortada
+  useEffect(() => {
+    if (postImageSource?.uri) {
+      Image.getSize(postImageSource.uri, (imgWidth, imgHeight) => {
+        if (imgWidth > 0 && imgHeight > 0) {
+          const calculatedHeight = (POST_IMAGE_MAX_WIDTH / imgWidth) * imgHeight;
+          setImageHeight(calculatedHeight);
+        }
+      }, (error) => {
+        console.log('Erro ao ler tamanho da imagem:', error);
+        setImageHeight(250); // Altura de fallback
+      });
+    } else {
+      setImageHeight(null);
+    }
+  }, [postImageSource]);
+
   const likeIcon = post.liked_by_me ? 'heart' : 'heart-outline';
   const likeColor = post.liked_by_me ? '#E23C3C' : '#333'; 
 
-  const navigation = useNavigation<any>();
-
-  const goToComments = () => {
-    navigation.navigate('Comments', { postId: post.id });
-  };
-  
-  const goToProfile = () => {
-    navigation.navigate('Profile', { username: post.author_username });
-  };
+  const goToComments = () => navigation.navigate('Comments', { postId: post.id });
+  const goToProfile = () => navigation.navigate('Profile', { username: post.author_username });
 
   return (
     <View style={styles.postContainer}>
@@ -88,10 +102,25 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
       
       {post.content && ( <Text style={styles.postConteudo}>{post.content}</Text> )}
       
-      {}
-      {postImageSource && ( <Image source={postImageSource} style={styles.postImage} /> )}
+      {/* Renderização da Imagem com Zoom */}
+      {postImageSource && imageHeight !== null && (
+        <TouchableOpacity onPress={() => setModalVisible(true)}>
+          <Image 
+            source={postImageSource} 
+            style={[styles.postImage, { height: imageHeight }]} 
+            resizeMode="cover" // 'cover' para preencher a largura e ajustar a altura
+          /> 
+        </TouchableOpacity>
+      )}
+      
+      {/* Loading enquanto calcula altura */}
+      {postImageSource && imageHeight === null && (
+         <View style={styles.imageLoadingPlaceholder}>
+            <ActivityIndicator size="small" color="#888"/>
+         </View>
+      )}
 
-      {}
+      {/* Barra de Like e Comentário */}
       <View style={styles.interactionBar}>
         <TouchableOpacity 
           style={styles.interactionButton}
@@ -113,6 +142,27 @@ export const PostItem: React.FC<{ post: Post, onToggleLike: (postId: number) => 
           </Text>
         </TouchableOpacity>
       </View>
+
+      {/* Modal para ver a imagem Full Screen */}
+      {postImageSource && (
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <Pressable style={styles.fullScreenImageContainer} onPress={() => setModalVisible(false)}>
+            <Image 
+              source={postImageSource} 
+              style={styles.fullScreenImage} 
+              resizeMode="contain" // Importante: 'contain' para ver a imagem inteira no modal
+            />
+            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+               <Ionicons name="close" size={30} color="#FFF" />
+            </TouchableOpacity>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 };
@@ -122,7 +172,7 @@ type FeedScreenRouteParams = {
 };
 type FeedScreenRouteProp = RouteProp<{ params: FeedScreenRouteParams }, 'params'>;
 
-
+// --- Tela Principal (HomeScreen) ---
 export default function HomeScreen() {
   const { API_URL, token, user } = useAuth(); 
   
@@ -135,7 +185,6 @@ export default function HomeScreen() {
 
   const fetchPosts = async () => {
     if (!user) return; 
-
     const endpoint = feedType === 'following' ? '/feed/following' : '/posts';
     
     try {
@@ -239,24 +288,29 @@ const styles = StyleSheet.create({
   postHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, },
   postAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#EEE', marginRight: 12, },
   
-  postAutorContainer: {
-    flexDirection: 'column', 
+  postAutorContainer: { flexDirection: 'column' },
+  postAutor: { fontWeight: 'bold', fontSize: 16 },
+  postUsername: { fontSize: 13, color: '#666' },
+  postCurso: { fontSize: 12, color: '#666' },
+
+  postConteudo: { fontSize: 15, lineHeight: 22, marginBottom: 12 },
+  
+  postImage: { 
+    width: '100%', 
+    borderRadius: 8, 
+    backgroundColor: '#EEE', 
+    marginTop: 8, 
   },
-  postAutor: { 
-    fontWeight: 'bold', 
-    fontSize: 16, 
-  },
-  postUsername: {
-    fontSize: 13,
-    color: '#666', 
-  },
-  postCurso: { 
-    fontSize: 12,
-    color: '#666', 
+  imageLoadingPlaceholder: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#EEE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    borderRadius: 8,
   },
 
-  postConteudo: { fontSize: 15, lineHeight: 22, marginBottom: 12, },
-  postImage: { width: '100%', aspectRatio: 16/9, borderRadius: 8, backgroundColor: '#EEE', marginTop: 8, },
   interactionBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -275,5 +329,23 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#333',
+  },
+
+  fullScreenImageContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 50, 
+    right: 20,
+    padding: 10,
+    zIndex: 99,
   }
 });

@@ -15,11 +15,7 @@ import {
 
 import {
   SafeAreaView,
-  SafeAreaProvider,
-  SafeAreaInsetsContext,
-  useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-
 
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -54,9 +50,8 @@ export default function CreatePostScreen() {
     }
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [16, 9], 
-      quality: 0.7,
+      allowsEditing: false, 
+      quality: 0.8, // qualidade
     });
 
     if (!result.canceled) {
@@ -71,9 +66,8 @@ export default function CreatePostScreen() {
       return;
     }
     let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      aspect: [16, 9],
-      quality: 0.7,
+      allowsEditing: false,
+      quality: 0.8,
     });
 
     if (!result.canceled) {
@@ -82,7 +76,6 @@ export default function CreatePostScreen() {
   };
 
   // --- Função Postar ---
-
   const handlePost = async () => {
     if (!user) return;
     if (!content && !imageUri) {
@@ -106,7 +99,6 @@ export default function CreatePostScreen() {
     }
 
     try {
-      // Enviar para a nova rota /posts
       const response = await fetch(`${API_URL}/posts`, {
         method: 'POST',
         body: formData,
@@ -172,10 +164,14 @@ export default function CreatePostScreen() {
           {/* Imagem selecionada */}
           {imageUri && (
             <View style={styles.imagePreviewContainer}>
-              <Image source={{ uri: imageUri }} style={styles.imagePreview} />
+              <Image 
+                source={{ uri: imageUri }} 
+                style={styles.imagePreview} 
+                resizeMode="contain" 
+              />
               <TouchableOpacity 
                 style={styles.removeImageButton}
-                onPress={() => setImageUri(null)} // Botão para remover a imagem
+                onPress={() => setImageUri(null)} 
               >
                 <Ionicons name="close-circle" size={24} color="#FFFFFF" />
               </TouchableOpacity>
@@ -188,7 +184,6 @@ export default function CreatePostScreen() {
           <TouchableOpacity style={styles.toolbarButton} onPress={handleAttachImage}>
             <Ionicons name="image-outline" size={24} color="#828282" />
           </TouchableOpacity>
-          {}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -226,7 +221,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    minWidth: 80, // Para o ActivityIndicator caber
+    minWidth: 80, 
     alignItems: 'center',
   },
   postButtonText: {
@@ -242,18 +237,20 @@ const styles = StyleSheet.create({
   textInput: {
     fontSize: 18,
     lineHeight: 24,
-    minHeight: 150, 
+    minHeight: 100, 
     textAlignVertical: 'top',
+    marginBottom: 20,
   },
   imagePreviewContainer: {
     position: 'relative',
     marginTop: 16,
+    marginBottom: 40, // Espaço extra no final
   },
   imagePreview: {
     width: '100%',
-    aspectRatio: 16/9,
+    height: 300, // Altura fixa para a preview não ocupar a tela toda
     borderRadius: 8,
-    backgroundColor: '#EEE',
+    backgroundColor: '#F0F2F5',
   },
   removeImageButton: {
     position: 'absolute',

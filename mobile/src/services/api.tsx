@@ -1,31 +1,28 @@
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-// 1. Importe a URL centralizada do seu AuthContext
-// (Ajuste o caminho se o arquivo estiver em outra pasta)
-import { API_URL } from '../contexts/AuthContext'; // 
 
 const api = axios.create({
-  // 2. Use a URL importada
-  baseURL: API_URL
+  // Então o baseURL deve ser APENAS o IP e a porta.
+  baseURL: `http://192.168.15.17:3000` 
 });
 
-// --- A MÁGICA ACONTECE AQUI ---
+// Interceptor de Requisição: Roda ANTES de CADA chamada
 api.interceptors.request.use(
   async (config) => {
-    //
-    // ⚠️ CORREÇÃO CRÍTICA ⚠️
-    // No seu AuthContext, você salva como 'token' (correto).
-    // Aqui, você deve ler a MESMA chave 'token' (e não '@token').
-    //
-    const token = await AsyncStorage.getItem('token'); 
+    // Busca o token no armazenamento
+    // (Confira no seu AuthContext se a chave é mesmo '@token')
+    const token = await AsyncStorage.getItem('@token'); 
     
+    // Se o token existir, anexa ele no Header
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // Deixa a requisição continuar
     return config;
   },
   (error) => {
+    // Em caso de erro ao preparar a requisição
     return Promise.reject(error);
   }
 );

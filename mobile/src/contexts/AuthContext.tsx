@@ -1,12 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
 import { jwtDecode } from 'jwt-decode';
 
-//
-// ⚠️ MUDE AQUI ⚠️
-// Coloque a URL que o Ngrok te deu. Use https se o ngrok der https.
-//
-export const API_URL = 'https://6fb516b802ed.ngrok-free.app'; 
+const API_URL = 'http://192.168.15.17:3000';
 
 export interface User {
   id: string;
@@ -25,7 +22,7 @@ interface AuthContextData {
   register: (name: string, username: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   updateUserContext: (updatedUser: User) => void;
-  API_URL: string; // Já estava aqui, ótimo!
+  API_URL: string;
 }
 const AuthContext = createContext<AuthContextData>({} as AuthContextData);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -35,8 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadToken = async () => {
       try {
-        // CORREÇÃO: A chave é 'token' (sem @)
-        const storedToken = await AsyncStorage.getItem('token'); 
+        const storedToken = await AsyncStorage.getItem('token');
         if (storedToken) {
           setToken(storedToken);
           const decodedUser = jwtDecode<User>(storedToken);
@@ -62,8 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw new Error(data.error || 'Erro ao logar');
       }
       const { token, user } = data;
-      // IMPORTANTE: A chave é 'token'
-      await AsyncStorage.setItem('token', token); 
+      await AsyncStorage.setItem('token', token);
       setToken(token);
       setUser(user);
     } catch (error) {
@@ -88,8 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
   const logout = async () => {
     try {
-      // IMPORTANTE: A chave é 'token'
-      await AsyncStorage.removeItem('token'); 
+      await AsyncStorage.removeItem('token');
       setToken(null);
       setUser(null);
     } catch (e) {
@@ -109,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateUserContext,
-        API_URL // A URL está disponível para o resto do app via hook
+        API_URL
       }}
     >
       {children}
