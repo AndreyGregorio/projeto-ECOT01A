@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { jwtDecode } from 'jwt-decode';
 
-const API_URL = 'http://192.168.15.17:3000';
+const API_URL = 'http://192.168.15.5:3000';
 
 export interface User {
   id: string;

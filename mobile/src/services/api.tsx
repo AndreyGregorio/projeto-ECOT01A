@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const api = axios.create({
   // Então o baseURL deve ser APENAS o IP e a porta.
-  baseURL: `http://192.168.15.17:3000` 
+  baseURL: `http://192.168.15.5:3000` 
 });
 
 // Interceptor de Requisição: Roda ANTES de CADA chamada
