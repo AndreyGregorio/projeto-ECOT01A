@@ -46,7 +46,7 @@ Certifique-se de usar **sua senha do PostgreSQL** e o **nome do banco criado**.
 
 ## 1.5. Iniciar o servidor backend
 
-No terminal do VSCode ou CMD:
+No terminal do VSCode:
 
 1. Entre na pasta **backend**
 
